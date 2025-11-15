@@ -6,7 +6,7 @@ This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** tr
 
 ## 📌 Project Overview
 
-**#TODO(update README)#TODO** We develop an HMM-based POS tagger with:
+**#TODO(update README)** We develop an HMM-based POS tagger with:
 
 - Estimation of transition probabilities (tag → tag) and emission probabilities (tag → word), trained on UD data
 - Viterbi decoding for inference
@@ -16,6 +16,7 @@ This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** tr
 ## 📊 Experiments
 
 We run experiments on **2 Universal Dependencies treebanks** (https://universaldependencies.org/) to observe and compare tagging accuracy of our HMM tagger.
+
 ---
 
 ## 📁 Project Structure
