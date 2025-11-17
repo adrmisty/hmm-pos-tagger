@@ -77,12 +77,12 @@ test_sentences = load_conllu("./data/en_ewt-ud-test.conllu")
 
 # train HMM on UD data
 hmm = HMM()
-hmm.train(train_sentences)
+hmm.train(train_data)
 
 # evaluate POS tagging accuracy
 predictions = hmm.predict(test_sentences)
 accuracy = hmm.evaluate(predictions, test_sentences)
-print(f"Tagging Accuracy: {accuracy:.2f}%")
+print(f"Tagging accuracy: {accuracy:.2f}%")
 ```
 
 ---
