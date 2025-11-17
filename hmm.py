@@ -59,8 +59,22 @@ class HMM:
         self._estimate_probs(*prob_counts)
         print("    >> HMM parameters estimated (start/transition/emission probabilities).")        
 
+    def test(self, test_data: list) -> float:
+        """
+        Evaluate the trained HMM model on a test dataset.
+        
+        Args:
+            test_data (list): a list of sentences from the UD dataset.
+                > each sentence is a list of (word, tag) tuples
+        
+        Returns:
+            accuracy (float): tagging accuracy on the test set
+        """
+        pass #TODO: notyetimplemented
 
-    # --- impls of HMM training steps
+
+
+    # --------------------------------------------------------------------------------------
 
 
     def _estimate_probs(self, start_c, transition_c, emission_c, tag_c, sentence_c):
@@ -71,8 +85,7 @@ class HMM:
         N = sentence_c
         
 
-        # TODO: smoothing??
-        # i am adding |T| and |V| to denominators but i guess i should be multiplying by λ
+        # TODO: smoothing [i am adding |T| and |V| to denominators but i guess i should be multiplying by some λ
         for tag in self.tags:
             # start of sequence: P(tag | *)
             # (times of tags seen at start of sentences) / (total sentences + |tagset|)
