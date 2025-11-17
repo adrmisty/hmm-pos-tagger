@@ -24,7 +24,7 @@ class HMM:
         self.emission_p = defaultdict(lambda: defaultdict(float))  
         
         # data
-        self.tagset = set()
+        self.tags = set()
         self.vocab = set()
         
         # handling unseen data in training
