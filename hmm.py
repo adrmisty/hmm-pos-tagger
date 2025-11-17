@@ -73,20 +73,28 @@ class HMM:
         pass #TODO: notyetimplemented
 
 
-    def predict(self, test_data: list) -> float:
+    def predict(self, test_sentences: list) -> list:
         """
-        Predicts tags for tokens of a list of untagged sentences using
-        the Viterbi algorithm.
+        Predict tags for a list of untagged sentences using the Viterbi algorithm.
 
         Args:
-            test_sentences (list): a list of sentences, 
-                each a list of no-tag words
+            test_sentences (list): list of sentences,
+                each sentence is a list of word strings (no gold tags).
 
         Returns:
-            list: a list of the same sentences, 
-                each a list of (word, predicted_tag) tuples.
+            list: list of sentences,
+                each sentence is a list of (word, predicted_tag) tuples.
         """
-        pass #TODO: notyetimplemented
+        predictions = []
+
+        for sent in test_sentences:
+            # run Viterbi on ONE sentence
+            pred_tags = self._viterbi(sent)
+            # pair each word with its predicted tag
+            tagged_sent = list(zip(sent, pred_tags))
+            predictions.append(tagged_sent)
+
+        return predictions
 
 
 
