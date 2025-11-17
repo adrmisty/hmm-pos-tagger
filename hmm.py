@@ -59,18 +59,33 @@ class HMM:
 
     def evaluate(self, test_data: list) -> float:
         """
-        Evaluate the trained HMM model on a test dataset,
-        according to HMM predictions based on the Viterbi algorithm
-        with regards to gold standard tags.
-        
+        Evaluate the trained HMM model on a tagged test dataset.
+
         Args:
-            test_data (list): a list of sentences from the UD dataset.
-                > each sentence is a list of (word, tag) tuples
-        
+            test_data (list):
+                list of sentences, each sentence is a list of (word, gold_tag) tuples
+
         Returns:
-            accuracy (float): tagging accuracy on the test set
+            float: accuracy = correct_tags / total_tags
         """
-        pass #TODO: notyetimplemented
+        total = 0
+        correct = 0
+
+        # 1. Extract only the words for prediction
+        words_only = [[word for (word, tag) in sent] for sent in test_data]
+
+        # 2. Predict tags for all sentences
+        predictions = self.predict(words_only)
+
+        # 3. Compare predicted tags to gold tags
+        for gold_sent, pred_sent in zip(test_data, predictions):
+            for (gold_word, gold_tag), (pred_word, pred_tag) in zip(gold_sent, pred_sent):
+                total += 1
+                if gold_tag == pred_tag:
+                    correct += 1
+
+        # 4. Return accuracy as a float (e.g. 0.92)
+        return correct / total if total > 0 else 0.0
 
 
     def predict(self, test_sentences: list) -> list:
