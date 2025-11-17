@@ -24,7 +24,7 @@ def load_conllu(file_path):
                 sentences.append(sentence)
     return sentences
 
-def save_pickle(obj, path):
+def save_model(obj, path):
     """
     Save an object, e.g. a trained model, to a pickle file.
     

@@ -16,8 +16,8 @@ sys.stdout = open(log_file, "w", encoding="utf-8")
 sys.stderr = sys.stdout
 
 # logic
-from utils import load_conllu
-from hmm.hmm import HMM
+from utils import load_conllu, save_model
+from hmm import HMM
 
 def main(args):
     """
@@ -29,31 +29,24 @@ def main(args):
             - evaluation UD dataset (optional)
             - output trained model path
             - smoothing method (optional)
-            - verbosity flag (optional)
     """
-    print(f"> Loading training data from {args.train}")
+    print(f"** Training data: {args.train} **")
     train_sentences = load_conllu(args.train)
 
-    print(f"> Initializing HMM (smoothing='{args.smoothing})'")
-    hmm = HMM(args.smoothing)
+    print("\n ** Training HMM part-of-speech tagger **")
+    hmm = HMM() 
+    # TODO hmm = HMM(smooth=args.smooth)
+    hmm.train(train_sentences)
 
-    print("> Training HMM...")
-    hmm.train(train_sentences, verbose=args.verbose)
 
-    print("> Saving trained model...")
-    args.model.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.model, "wb") as f:
-        pickle.dump(hmm, f)
-    print(f"Trained model saved to {args.model}")
+    print("\n ** Saving trained HMM part-of-speech tagger **")
+    save_model(hmm, args.model)
+    print(f"    > Saved to: {args.model}")
 
     if args.test:
-        print(f"> Evaluating on test data from {args.test}")
-        test_sentences = load_conllu(args.test)
-        predictions = hmm.predict(test_sentences)
-        accuracy = hmm.evaluate(predictions, test_sentences)
-        print(f"Tagging Accuracy: {accuracy:.2f}%")
+        # TODO impl evaluation
+        pass
 
-# ------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train an HMM POS tagger")
@@ -73,16 +66,13 @@ if __name__ == "__main__":
         help="Path to save the trained HMM model (.pkl format)"
     )
 
+    """ TODO
     parser.add_argument(
         "--smoothing", type=str, default="none",
         choices=["none", "add-one"],
         help="Smoothing method for unknown words"
     )
-
-    parser.add_argument(
-        "--verbose", action="store_true",
-        help="Print progress and training info"
-    )
-
+    """
+    
     args = parser.parse_args()
     main(args)
