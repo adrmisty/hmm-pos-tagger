@@ -183,14 +183,77 @@ class HMM:
         
         return word_counts, unk_words
 
-    def _viterbi(self, test_data: list) -> float:
+    def _viterbi(self, words: list) -> list:
         """
-        Finds the most (log-)probable tag sequence using the Viterbi algorithm.
-        
+        Finds the most probable tag sequence using the Viterbi algorithm.
+
         Args:
-            words (list): a list of word strings.
+            words (list): a list of word strings for ONE sentence.
 
         Returns:
-            list: a list of respective predicted tag strings (from the UD tagset).
-        """       
-        pass #TODO: notyetimplemented
+            list: a list of predicted tag strings (same length as `words`).
+        """
+        if not words:
+            return []
+
+        # Replace unknown words with <UNK>
+        obs = [w if w in self.vocab else "<UNK>" for w in words]
+        T = len(obs)
+        tags = list(self.tags)
+
+        # Dynamic programming tables:
+        # dp[t][tag] = best probability for any path ending in `tag` at position t
+        # backpointer[t][tag] = previous tag that gave that best probability
+        dp = []
+        backpointer = []
+
+        # ----- 1. Initialization (t = 0) -----
+        dp0 = {}
+        bp0 = {}
+        w0 = obs[0]
+        for tag in tags:
+            start_prob = self.start_p[tag]              # P(tag | <s>)
+            emit_prob = self.emission_p[tag].get(w0, 0) # P(w0 | tag)
+            dp0[tag] = start_prob * emit_prob
+            bp0[tag] = None
+        dp.append(dp0)
+        backpointer.append(bp0)
+
+        # ----- 2. Recursion (t = 1 .. T-1) -----
+        for t in range(1, T):
+            dp_t = {}
+            bp_t = {}
+            w_t = obs[t]
+
+            for tag in tags:
+                emit_prob = self.emission_p[tag].get(w_t, 0)  # P(w_t | tag)
+                best_prob = 0.0
+                best_prev = None
+
+                for prev_tag in tags:
+                    prev_prob = dp[t - 1].get(prev_tag, 0.0)
+                    trans_prob = self.transition_p[prev_tag].get(tag, 0.0)
+                    prob = prev_prob * trans_prob * emit_prob
+
+                    if best_prev is None or prob > best_prob:
+                        best_prob = prob
+                        best_prev = prev_tag
+
+                dp_t[tag] = best_prob
+                bp_t[tag] = best_prev
+
+            dp.append(dp_t)
+            backpointer.append(bp_t)
+
+        # ----- 3. Termination: pick best final tag -----
+        last_probs = dp[-1]
+        # if everything is zero (pathological case), just pick an arbitrary tag
+        best_last_tag = max(last_probs, key=last_probs.get)
+
+        # ----- 4. Backtrack to recover best tag sequence -----
+        best_tags = [None] * T
+        best_tags[-1] = best_last_tag
+        for t in range(T - 1, 0, -1):
+            best_tags[t - 1] = backpointer[t][best_tags[t]]
+
+        return best_tags
