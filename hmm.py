@@ -17,11 +17,11 @@ class HMM:
         ud_tags (set): set of unique UD tags seen during training.  
     """
     def __init__(self, unk_th : int = 1, smooth : float = None):
-        
-        # probabilities
-        self.start_p = defaultdict(float)   
-        self.transition_p = defaultdict(lambda: defaultdict(float))
-        self.emission_p = defaultdict(lambda: defaultdict(float))  
+
+        # probabilities (plain dicts so they can be pickled)
+        self.start_p = {}        # dict[tag] -> float
+        self.transition_p = {}   # dict[prev_tag] -> dict[tag] -> float
+        self.emission_p = {}     # dict[tag] -> dict[word] -> float
         
         # data
         self.tags = set()
@@ -123,28 +123,30 @@ class HMM:
         V = len(self.vocab)
         N = sentence_c
         
-
-        # TODO: smoothing [i am adding |T| and |V| to denominators but i guess i should be multiplying by some λ
+        # start of sequence: P(tag | <s>)
         for tag in self.tags:
-            # start of sequence: P(tag | *)
-            # (times of tags seen at start of sentences) / (total sentences + |tagset|)
+            # (times tag seen at start of sentences) / (total sentences + |tagset|)
             self.start_p[tag] = start_c[tag] / (N + T)
 
-
+        # transition: P(tag_i | tag_{i-1})
         for prev_tag in self.tags:
-            # transition: P(tag_i | tag_{i-1})
-            # (times of transitions from prev_tag to tag) / (total times prev_tag seen + |tagset|)
             prev_transitions = tag_c[prev_tag]
-            
-            for tag in self.tags: # O(n2)
-                self.transition_p[prev_tag][tag] = (transition_c[prev_tag][tag]) / (prev_transitions + T)
+            self.transition_p[prev_tag] = {}  # create row for this prev_tag
 
+            for tag in self.tags:  # O(n^2)
+                self.transition_p[prev_tag][tag] = (
+                    transition_c[prev_tag][tag] / (prev_transitions + T)
+                )
+
+        # emission: P(word | tag)
         for tag in self.tags:
-            # emission: P(word | tag)
-            # (times of word output by tag) / (total times tag seen + |vocab|)
             tag_emissions = tag_c[tag]
+            self.emission_p[tag] = {}  # create row for this tag
+
             for word in self.vocab:
-                self.emission_p[tag][word] = (emission_c[tag][word]) / (tag_emissions + V)
+                self.emission_p[tag][word] = (
+                    emission_c[tag][word] / (tag_emissions + V)
+                )
 
 
     def _count_probs(self, training_data: list, words: tuple):
