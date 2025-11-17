@@ -4,9 +4,12 @@
 This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** trained and evaluated on two datasets from the **Universal Dependencies (UD)** treebanks.  
 
 
+** --> #TODO(update README)** 
+
+
 ## 📌 Project Overview
 
-**#TODO(update README)** We develop an HMM-based POS tagger with:
+**We develop an HMM-based POS tagger with:
 
 - Estimation of transition probabilities (tag → tag) and emission probabilities (tag → word), trained on UD data
 - Viterbi decoding for inference
@@ -84,6 +87,17 @@ predictions = hmm.predict(test_sentences)
 accuracy = hmm.evaluate(predictions, test_sentences)
 print(f"Tagging accuracy: {accuracy:.2f}%")
 ```
+
+---
+
+## 📖 References
+
+- Zeman, Daniel; et al., 2019, 
+  Universal Dependencies 2.5, LINDAT/CLARIAH-CZ digital library at the Institute of Formal and Applied Linguistics (ÚFAL), 
+  http://hdl.handle.net/11234/1-3105.
+
+- Hajič, Jan, 2016, Markov Models, Institute of Formal and Applied Linguistics (ÚFAL) Charles University, https://ufal.mff.cuni.cz/~zabokrtsky/fel/slides/lect03-markov-models.pdf.
+
 
 ---
 
