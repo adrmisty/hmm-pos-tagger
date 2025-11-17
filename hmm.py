@@ -4,11 +4,8 @@
 #
 # nov-2026
 
-from utils import load
 from pathlib import Path
 from collections import defaultdict
-
-SOME_LOADED_VARIABLE = load(Path("./data/filepath")) # load from file
 
 class HMM:
     """Hidden Markov Model (HMM) POS tagger class.
