@@ -47,8 +47,8 @@ def main(args):
     print(f"    > Saved to: {args.model}")
 
     if args.test:
-        # TODO: impl evaluation, using test.data()
-        pass
+        accuracy = hmm.evaluate(test_data)
+        print(f"\n ** Test accuracy: {accuracy*100:.2f}% **")
 
     print("\n\n** References **")
     print("- Zeman, Daniel; et al., 2019, Universal Dependencies 2.5, LINDAT/CLARIAH-CZ digital library at the Institute of Formal and Applied Linguistics (ÚFAL), http://hdl.handle.net/11234/1-3105.")
