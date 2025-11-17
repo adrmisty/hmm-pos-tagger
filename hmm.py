@@ -59,9 +59,12 @@ class HMM:
         self._estimate_probs(*prob_counts)
         print("    >> HMM parameters estimated (start/transition/emission probabilities).")        
 
-    def test(self, test_data: list) -> float:
+
+    def evaluate(self, test_data: list) -> float:
         """
-        Evaluate the trained HMM model on a test dataset.
+        Evaluate the trained HMM model on a test dataset,
+        according to HMM predictions based on the Viterbi algorithm
+        with regards to gold standard tags.
         
         Args:
             test_data (list): a list of sentences from the UD dataset.
@@ -69,6 +72,22 @@ class HMM:
         
         Returns:
             accuracy (float): tagging accuracy on the test set
+        """
+        pass #TODO: notyetimplemented
+
+
+    def predict(self, test_data: list) -> float:
+        """
+        Predicts tags for tokens of a list of untagged sentences using
+        the Viterbi algorithm.
+
+        Args:
+            test_sentences (list): a list of sentences, 
+                each a list of no-tag words
+
+        Returns:
+            list: a list of the same sentences, 
+                each a list of (word, predicted_tag) tuples.
         """
         pass #TODO: notyetimplemented
 
@@ -166,3 +185,15 @@ class HMM:
         self.vocab.add("<UNK>")
         
         return word_counts, unk_words
+
+    def _viterbi(self, test_data: list) -> float:
+        """
+        Finds the most (log-)probable tag sequence using the Viterbi algorithm.
+        
+        Args:
+            words (list): a list of word strings.
+
+        Returns:
+            list: a list of respective predicted tag strings (from the UD tagset).
+        """       
+        pass #TODO: notyetimplemented
