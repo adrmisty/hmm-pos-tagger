@@ -42,18 +42,18 @@ class HMM:
         """
         
         print("> Training a Hidden-Markov-Model part-of-speech tagger...")
-        print(f"\n  >> Training data: {len(training_data)} sentences.< from Universal Dependencies dataset")
+        print(f"\n  >> Training data: {len(training_data)} sentences.")
         
         # 1. building vocabulary, counting words/tag occurrences
         words = self._build_vocab(training_data)
-        print(f"    >> Vocabulary built with {len(self.vocab)} words (including <UNK>) for a UD tagset of {len(self.tags)}.")
+        print(f"    >> Vocabulary built with {len(self.vocab)} words (including <UNK>).")
         
         # 2.1 probabilities counting
         prob_counts = self._count_probs(training_data, words)
-        print(f"    >> Tagset: Counted {len(self.tags)}.")
         
         # 2.2 probabilities estimation
         self._estimate_probs(*prob_counts)
+        print(f"    >> Tagset: Counted {len(list(self.tags))}.")
         print("    >> HMM parameters estimated (start/transition/emission probabilities).")        
 
 
