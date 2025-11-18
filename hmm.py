@@ -201,7 +201,7 @@ class HMM:
         unk_words = set()
         for word, count in word_counts.items():
             if count <= self.unk_threshold:
-                self.unk_words.add(word)
+                unk_words.add(word)
             else:
                 self.vocab.add(word)
         self.vocab.add("<UNK>")
