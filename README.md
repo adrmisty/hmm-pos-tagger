@@ -3,8 +3,19 @@
 
 This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** trained and evaluated on two datasets from the **Universal Dependencies (UD)** treebanks.  
 
+---
 
-** --> #TODO(update README)** 
+## TODOS
+
+For the code:
+- implement dumping of tagging prediction for test data into text file
+- evaluate other metrics apart from accuracy (precision, recall, f1)
+- analyze how to improve accuracy
+  --> smoothing?
+  --> other techniques?
+
+#TODOs-Colab:
+once we have improved the accuracy, repeat the experiments for the new versions of the model for the 3 languages (English - Dutch - Greek) and do a confusion matrix to identify trends in incorrect tagging of certain PoS?
 
 
 ## 📌 Project Overview
