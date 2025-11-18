@@ -1,6 +1,7 @@
-# utils.py = utility and data functions
-# Adriana R.F. (adrirflorez@gmail.com)
-#
+# hmm.py = hidden markov model functions
+# adriana r.f. (@adrmisty)
+# vera s.g. (@verasenderowiczg)
+# emiel v.j. (@emielvanderghinste)
 # nov-2026
 
 from pathlib import Path

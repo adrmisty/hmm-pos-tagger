@@ -47,9 +47,9 @@ pip install -r requirements.txt
 
 ```bash
 python train.py \
-  --train ./data/{ud_folder}/{language_iso}-ud-train.conllu \
-  --test ./data/{ud_folder}/{language_iso}-ud-test.conllu
-  --model ./models/hmm.pkl
+  --train ./data/{UD_Language_dir}/{iso2_lang}-ud-train.conllu \
+  --test ./data/{UD_Language_dir}/{iso2_lang}-ud-test.conllu
+  --model ./results/models/hmm.pkl
 ```
 
 ---
@@ -59,32 +59,36 @@ python train.py \
 
 ### Training
 
-- Transition and emission probabilities are estimated from tag sequence and observed word-tag pairs in the training dataset.
-- Unknown words are handled using `<UNK>` tokens.
+- Transition and emission probabilities are estimated from tag sequence and observed word-tag pairs in the training dataset via **Maximum Likelihood Estimation**.
+
+- Unknown words are handled using `<UNK>` tokens for words with frequency under a certain threshold.
 
 ### Decoding
 
-- The **Viterbi algorithm** is used to find the most probable tag sequence for a sentence, via dynamic programming.
+- The **Viterbi algorithm** is used to find the most probable tag sequence for an untagged sentence, via dynamic programming.
 
 ### Usage
 
-Supported directly in CLI, the pipeline is as follows: 
+Supported directly in CLI, the pipeline for training and evaluating an HMM tagger on training/testing data from Universal Dependencies is as follows: 
 
 ```python
 from hmm import HMM
-from data_loader import load_conllu
+from utils import load_conllu, save_models
 
 # load Universal Dependencies data
-train_sentences = load_conllu("./data/en_ewt-ud-train.conllu")
-test_sentences = load_conllu("./data/en_ewt-ud-test.conllu")
+train_data = load_conllu("./data/UD_Basque-BDT/eu_bdt-ud-train.conllu")
+test_data = load_conllu("./data/UD_Basque-BDT/eu_bdt-ud-train.conllu")
+model_path = "./results/models/hmm-pos-tagger.pkl"
 
 # train HMM on UD data
 hmm = HMM()
 hmm.train(train_data)
 
-# evaluate POS tagging accuracy
-predictions = hmm.predict(test_sentences)
-accuracy = hmm.evaluate(predictions, test_sentences)
+# (optionally but recommended) persist trained model
+save_model(model_path, hmm)
+
+# evaluate POS tagging prediction accuracy
+accuracy = hmm.evaluate(test_data)
 print(f"Tagging accuracy: {accuracy:.2f}%")
 ```
 

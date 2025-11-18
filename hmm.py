@@ -1,17 +1,16 @@
 # hmm.py = hidden markov model functions
-# adriana r.f. (adrirflorez@gmail.com)
-#
-#
+# adriana r.f. (@adrmisty)
+# vera s.g. (@verasenderowiczg)
+# emiel v.j. (@emielvanderghinste)
 # nov-2026
 
-from pathlib import Path
 from collections import defaultdict
 
 class HMM:
     """Hidden Markov Model (HMM) POS tagger class.
        
     Attributes:
-        start_p (dict): start of a sequence probabilities of a tag, P(tag | <s>).
+        init_p (dict): start of a sequence probabilities of a tag, P(tag | <s>).
         transition_p(dict): transition probabilities of a tag given a previous tag, P(tag_i | tag_{i-1}).
         emission_p (dict): emission probabilities of a word given its tag, P(word | tag)
         ud_tags (set): set of unique UD tags seen during training.  
@@ -19,7 +18,7 @@ class HMM:
     def __init__(self, unk_th : int = 1, smooth : float = None):
 
         # probabilities (plain dicts so they can be pickled)
-        self.start_p = {}        # dict[tag] -> float
+        self.init_p = {}        # dict[tag] -> float
         self.transition_p = {}   # dict[prev_tag] -> dict[tag] -> float
         self.emission_p = {}     # dict[tag] -> dict[word] -> float
         
@@ -29,7 +28,8 @@ class HMM:
         
         # handling unseen data in training
         # (?) TODO should we impl smoothing? 
-        self.unk_th = unk_th
+        self.unk_threshold = unk_th
+        self.smooth_lambda = smooth
 
     def train(self, training_data: list):
         """
@@ -116,7 +116,7 @@ class HMM:
     # --------------------------------------------------------------------------------------
 
 
-    def _estimate_probs(self, start_c, transition_c, emission_c, tag_c, sentence_c):
+    def _estimate_probs(self, init_c, transition_c, emission_c, tag_c, sentence_c):
         
         # total sizes of each set
         T = len(self.tags)
@@ -126,7 +126,7 @@ class HMM:
         # start of sequence: P(tag | <s>)
         for tag in self.tags:
             # (times tag seen at start of sentences) / (total sentences + |tagset|)
-            self.start_p[tag] = start_c[tag] / (N + T)
+            self.init_p[tag] = init_c[tag] / (N + T)
 
         # transition: P(tag_i | tag_{i-1})
         for prev_tag in self.tags:
@@ -156,7 +156,7 @@ class HMM:
         
         # these counts are used to calculate the actual probs
         # for estimating the HMM params (diving by totals of tagset/vocab size)
-        start_c = defaultdict(int)
+        init_c = defaultdict(int)
         transition_c = defaultdict(lambda: defaultdict(int))
         emission_c = defaultdict(lambda: defaultdict(int))
         tag_c = defaultdict(int)
@@ -166,7 +166,7 @@ class HMM:
                 continue
 
             # start of sequence tag
-            start_c[sentence[0][1]] += 1
+            init_c[sentence[0][1]] += 1
             
             prev_tag = None
             for word, tag in sentence:
@@ -186,7 +186,7 @@ class HMM:
                     transition_c[prev_tag][tag] += 1
                 prev_tag = tag
         
-        return start_c, transition_c, emission_c, tag_c, N
+        return init_c, transition_c, emission_c, tag_c, N
 
 
     def _build_vocab(self, training_data: list) -> tuple:
@@ -198,15 +198,15 @@ class HMM:
                 word_counts[word] += 1
         
         # vocabulary
-        unk_words = set()
+        self.unk_words = set()
         for word, count in word_counts.items():
-            if count <= self.unk_th:
-                unk_words.add(word)
+            if count <= self.unk_threshold:
+                self.unk_words.add(word)
             else:
                 self.vocab.add(word)
         self.vocab.add("<UNK>")
         
-        return word_counts, unk_words
+        return word_counts
 
     def _viterbi(self, words: list) -> list:
         """
@@ -221,12 +221,12 @@ class HMM:
         if not words:
             return []
 
-        # Replace unknown words with <UNK>
+        # replace unknown words with <UNK>
         obs = [w if w in self.vocab else "<UNK>" for w in words]
         T = len(obs)
         tags = list(self.tags)
 
-        # Dynamic programming tables:
+        # dynamic programming tables:
         # dp[t][tag] = best probability for any path ending in `tag` at position t
         # backpointer[t][tag] = previous tag that gave that best probability
         dp = []
@@ -237,9 +237,9 @@ class HMM:
         bp0 = {}
         w0 = obs[0]
         for tag in tags:
-            start_prob = self.start_p[tag]              # P(tag | <s>)
+            init_prob = self.init_p[tag]              # P(tag | <s>)
             emit_prob = self.emission_p[tag].get(w0, 0) # P(w0 | tag)
-            dp0[tag] = start_prob * emit_prob
+            dp0[tag] = init_prob * emit_prob
             bp0[tag] = None
         dp.append(dp0)
         backpointer.append(bp0)

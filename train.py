@@ -1,7 +1,7 @@
-# train.py = training for pos tagger
-# adriana r.f. (adrirflorez@gmail.com)
-#
-#
+# hmm.py = hidden markov model functions
+# adriana r.f. (@adrmisty)
+# vera s.g. (@verasenderowiczg)
+# emiel v.j. (@emielvanderghinste)
 # nov-2026
 
 import sys
