@@ -198,7 +198,7 @@ class HMM:
                 word_counts[word] += 1
         
         # vocabulary
-        self.unk_words = set()
+        unk_words = set()
         for word, count in word_counts.items():
             if count <= self.unk_threshold:
                 self.unk_words.add(word)
@@ -206,7 +206,7 @@ class HMM:
                 self.vocab.add(word)
         self.vocab.add("<UNK>")
         
-        return word_counts
+        return word_counts, unk_words
 
     def _viterbi(self, words: list) -> list:
         """
