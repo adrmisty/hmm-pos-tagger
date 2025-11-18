@@ -76,9 +76,13 @@ class HMM:
 
         # 2. Predict tags for all sentences
         predictions = self.predict(words_only)
-
+        
         # 3. Compare predicted tags to gold tags
+        to_print = 0
         for gold_sent, pred_sent in zip(test_data, predictions):
+            if to_print < 30:
+              print(f"{gold_sent} // {pred_sent}\n")
+              to_print += 1
             for (gold_word, gold_tag), (pred_word, pred_tag) in zip(gold_sent, pred_sent):
                 total += 1
                 if gold_tag == pred_tag:
@@ -123,30 +127,43 @@ class HMM:
         V = len(self.vocab)
         N = sentence_c
         
+        # TODO: zero-probs, smoothing?
+        # division by |tagset| / |vocab| * multiplied by smoothing factor?
+
         # start of sequence: P(tag | <s>)
         for tag in self.tags:
             # (times tag seen at start of sentences) / (total sentences + |tagset|)
-            self.init_p[tag] = init_c[tag] / (N + T)
+            self.init_p[tag] = init_c.get(tag, 0) / N if N > 0 else 0.0
 
         # transition: P(tag_i | tag_{i-1})
         for prev_tag in self.tags:
-            prev_transitions = tag_c[prev_tag]
-            self.transition_p[prev_tag] = {}  # create row for this prev_tag
+            prev_transitions = tag_c.get(prev_tag, 0)
+            self.transition_p[prev_tag] = {} 
 
-            for tag in self.tags:  # O(n^2)
-                self.transition_p[prev_tag][tag] = (
-                    transition_c[prev_tag][tag] / (prev_transitions + T)
-                )
+            # division by 0
+            if prev_transitions == 0:
+                 for tag in self.tags:
+                      self.transition_p[prev_tag][tag] = 0.0
+                 continue
+
+            for tag in self.tags:
+                count = transition_c.get(prev_tag, {}).get(tag, 0)
+                self.transition_p[prev_tag][tag] = count / prev_transitions
 
         # emission: P(word | tag)
         for tag in self.tags:
-            tag_emissions = tag_c[tag]
-            self.emission_p[tag] = {}  # create row for this tag
+            tag_emissions = tag_c.get(tag, 0)
+            self.emission_p[tag] = {} 
+
+            # same for division by zero
+            if tag_emissions == 0:
+                 for word in self.vocab:
+                      self.emission_p[tag][word] = 0.0
+                 continue
 
             for word in self.vocab:
-                self.emission_p[tag][word] = (
-                    emission_c[tag][word] / (tag_emissions + V)
-                )
+                count = emission_c.get(tag, {}).get(word, 0)
+                self.emission_p[tag][word] = count / tag_emissions
 
 
     def _count_probs(self, training_data: list, words: tuple):
