@@ -31,8 +31,7 @@ def main(args):
     print(f"    > Data downloaded from (Universal Dependencies v2.17): https://lindat.mff.cuni.cz/repository/items/b4fcb1e0-f4b2-4939-80f5-baeafda9e5c0")
 
     print("\n ** Training HMM part-of-speech tagger **")
-    hmm = HMM() 
-    # TODO: hmm = HMM(smooth=args.smooth)
+    hmm = HMM(smooth=args.smoothing) 
     hmm.train(train_data)
 
 
@@ -71,13 +70,10 @@ if __name__ == "__main__":
         help="Path to save the trained HMM POS tagger (.pkl format)"
     )
 
-    """ TODO:
     parser.add_argument(
-        "--smoothing", type=float, default="none",
+        "--smoothing", type=float, default=0.00,
         help="Smoothing method for unseen/rare data"
     )
-    """
     
     args = parser.parse_args()
-    main(args)
-    
+    main(args)    
