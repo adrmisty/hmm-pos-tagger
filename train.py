@@ -8,12 +8,6 @@ import sys
 from pathlib import Path
 import argparse
 
-# redirection of stdout/stderr to a log file
-log_file = Path("./results/log.txt")
-log_file.parent.mkdir(parents=True, exist_ok=True)
-sys.stdout = open(log_file, "w", encoding="utf-8")
-sys.stderr = sys.stdout
-
 # logic
 from utils import load_conllu, save_model
 from hmm import HMM
