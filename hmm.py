@@ -78,11 +78,13 @@ class HMM:
         predictions = self.predict(words_only)
         
         # 3. Compare predicted tags to gold tags
-        to_print = 0
+        #uncomment commented lines below to print first X predictions
+        #n_to_print = 0
+        #to_print_counter = 0
         for gold_sent, pred_sent in zip(test_data, predictions):
-            if to_print < 30:
-              print(f"{gold_sent} // {pred_sent}\n")
-              to_print += 1
+            #if to_print_counter < n_to_print:
+              #print(f"{gold_sent} // {pred_sent}\n")
+              #to_print_counter += 1
             for (gold_word, gold_tag), (pred_word, pred_tag) in zip(gold_sent, pred_sent):
                 total += 1
                 if gold_tag == pred_tag:
