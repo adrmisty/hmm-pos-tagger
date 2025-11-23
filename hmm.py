@@ -129,44 +129,70 @@ class HMM:
         V = len(self.vocab)
         N = sentence_c
         
-        # TODO: zero-probs, smoothing?
         # division by |tagset| / |vocab| * multiplied by smoothing factor?
 
         # start of sequence: P(tag | <s>)
+        # Use self.smooth_lambda for lambda, and N + lambda * T for the denominator
+
+        lambda_val = self.smooth_lambda if self.smooth_lambda is not None else 0
+        lambda_T = lambda_val * T
+        denominator = N + lambda_T
+
         for tag in self.tags:
-            # (times tag seen at start of sentences) / (total sentences + |tagset|)
-            self.init_p[tag] = init_c.get(tag, 0) / N if N > 0 else 0.0
+            # (times tag seen at start of sentences) + lambda / (total sentences) + (lambda * |tagset|)
+            numerator = init_c.get(tag, 0) + lambda_val
+            self.init_p[tag] = numerator / denominator if denominator > 0 else 0.0
 
         # transition: P(tag_i | tag_{i-1})
         for prev_tag in self.tags:
             prev_transitions = tag_c.get(prev_tag, 0)
             self.transition_p[prev_tag] = {} 
+        
+            denominator = prev_transitions + lambda_T
 
-            # division by 0
-            if prev_transitions == 0:
+            # division by 0 (pathological case only)
+            if denominator == 0:
+                 # Calculate uniform probability if data is pathologically empty
+                 uniform_prob = 1 / T if T > 0 else 0.0
                  for tag in self.tags:
-                      self.transition_p[prev_tag][tag] = 0.0
+                      self.transition_p[prev_tag][tag] = uniform_prob
                  continue
+                 
 
             for tag in self.tags:
                 count = transition_c.get(prev_tag, {}).get(tag, 0)
-                self.transition_p[prev_tag][tag] = count / prev_transitions
+                # Smoothed Numerator: Count(prev_tag, tag) + lambda
+                numerator = count + lambda_val
+                
+                # Apply smoothed division
+                self.transition_p[prev_tag][tag] = numerator / denominator
 
         # emission: P(word | tag)
+
+        lambda_V = lambda_val * V
+
         for tag in self.tags:
             tag_emissions = tag_c.get(tag, 0)
-            self.emission_p[tag] = {} 
+            self.emission_p[tag] = {}
 
-            # same for division by zero
-            if tag_emissions == 0:
+            # Smoothed Denominator: Count(tag) + lambda * V
+            denominator = tag_emissions + lambda_V
+
+            # division by 0 (pathological case only)
+            if denominator == 0:
+                 # Calculate uniform probability if tag count is pathologically empty
+                 uniform_prob = 1 / V if V > 0 else 0.0
                  for word in self.vocab:
-                      self.emission_p[tag][word] = 0.0
+                      self.emission_p[tag][word] = uniform_prob
                  continue
 
             for word in self.vocab:
                 count = emission_c.get(tag, {}).get(word, 0)
-                self.emission_p[tag][word] = count / tag_emissions
-
+                # Smoothed Numerator: Count(tag, word) + lambda
+                numerator = count + lambda_val
+                
+                # Apply smoothed division
+                self.emission_p[tag][word] = numerator / denominator
 
     def _count_probs(self, training_data: list, words: tuple):
         
