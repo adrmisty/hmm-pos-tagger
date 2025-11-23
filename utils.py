@@ -40,7 +40,6 @@ def save_model(obj, path):
         obj: Python object to save
         path (Path or str): output path
     """
-    import pickle
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "wb") as f:
@@ -111,3 +110,52 @@ def load_model(path: Path) -> HMM:
     except Exception as e:
         print(f"Error loading model from {path}: {e}")
         sys.exit(1)
+
+def save_predictions(predictions: list, path: Path):
+    """
+    Saves predictions (list of tagged sentences) to a plain text file.
+    Format: word_1/tag_1 word_2/tag_2 ... [newline for each sentence]
+    
+    Args:
+        predictions (list): A nested list where each inner list is a sentence 
+                            of (word, tag) tuples.
+        path (Path): The file path where predictions are saved.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        for sentence in predictions:
+            line = " ".join([f"{word}/{tag}" for word, tag in sentence])
+            f.write(line + '\n')
+    print(f"    > Predictions saved to: {path}")
+
+def load_predictions(path: Path) -> list:
+    """
+    Loads predictions from a text file and returns them as a nested list of (word, tag) tuples.
+    
+    Args:
+        path (Path): The file path from which predictions should be loaded.
+
+    Returns:
+        list: A nested list where each inner list is a sentence of (word, tag) tuples.
+    """
+    try:
+        predictions = []
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                tagged_sentence = []
+                for item in line.split():
+                    if '/' in item:
+                        word, tag = item.rsplit('/', 1)
+                        tagged_sentence.append((word, tag))
+                predictions.append(tagged_sentence)
+        print(f"    > Predictions loaded from: {path}")
+        return predictions
+    except FileNotFoundError:
+        print(f"Error: Predictions file not found at {path}")
+        return None
+    except Exception as e:
+        print(f"Error loading predictions from {path}: {e}")
+        return None
