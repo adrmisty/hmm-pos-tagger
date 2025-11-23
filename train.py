@@ -9,24 +9,37 @@ from pathlib import Path
 import argparse
 
 # logic
-from utils import load_conllu, save_model, plot_confusion_matrix, load_model
+from utils import load_conllu, save_model, plot_confusion_matrix, load_model, load_predictions, save_predictions
 from hmm import HMM
 
 def main(args):
     """
-    Handles two modes:
-    1) Train an HMM POS tagger and [optionally] evaluate on a test set.
-    2) Load a pre-trained HMM POS tagger and evaluate on a test set.
+    Handles the execution of the HMM Part-of-Speech Tagger, supporting three
+    modes: Training, loading model, and analysis of pre-calculated results.
+    
+    1) Training Mode:
+       Requires --train. Trains a new HMM and saves it (--model). Can be used with --test and --matrix to evaluate and plot.
+    
+    2) Model Evaluation Mode:
+       Requires --load-model and --test. Loads a pre-trained HMM, runs the algorithm on the test data, and reports accuracy. Can be used with --matrix to plot confusion matrix.
+       
+    3) Analysis Mode:
+       Requires --load-predictions and --test. Skips the prediction step, loads pre-calculated predictions from a file, and reports accuracy. Can be used with --matrix to plot confusion matrix.
     
     Args:
-        args: command line arguments
-            - training UD dataset
-            - evaluation UD dataset (optional)
-            - output trained model path
-            - smoothing method (optional)
+        args: command line arguments from argparse:
+            --train: Path to the UD training dataset (required for training).
+            --test: Path to the UD test dataset (required for evaluation/plotting).
+            --load-model: Path to load a pre-trained HMM for evaluation.
+            --model: Path to save the trained HMM.
+            --smoothing: Smoothing factor (lambda) used during training.
+            --matrix: Flag to plot the confusion matrix.
+            --save-predictions: Path to save the evaluation output to a text file.
+            --load-predictions: Path to load predictions from a file (Analysis Mode).
     """
     hmm = None
     test_data = None
+    predictions_nested = None
 
     if args.test:
         print(f"** Test data: {args.test} **")
@@ -43,31 +56,68 @@ def main(args):
         hmm = HMM(smooth=args.smoothing) 
         hmm.train(train_data)
 
-
         print("\n ** Saving trained HMM part-of-speech tagger **")
         save_model(hmm, args.model)
         print(f"    > Saved to: {args.model}")
+
     elif args.load_model:
         print(f"** Loading pre-trained HMM model from: {args.load_model} **")
         # Calls the function imported from utils.py
         hmm = load_model(args.load_model)
     
-    if hmm is None:
-        print("Error: Model was not loaded or trained. Check input arguments.")
+    if hmm is None and args.load_predictions is None:
+        print("Error: Model was not loaded or trained, and no predictions file was provided.")
+        sys.exit(1)
+
+    if args.test and test_data is None:
+        print("Error: Test data required for evaluation but could not be loaded.")
         sys.exit(1)
     
-    if args.test and test_data is not None:
+    if args.load_predictions:
+        # Load predictions from file
+        print(f"\n ** Loading pre-calculated predictions **")
+        predictions_nested = load_predictions(args.load_predictions)
+        if predictions_nested is None:
+             print("Error: Could not load predictions file.")
+             sys.exit(1)
+
+    elif args.test and hmm is not None:
+        print("\n ** Running HMM prediction **")
         test_words_nested = [[word for (word, tag) in sent] for sent in test_data]
         predictions_nested = hmm.predict(test_words_nested)
+        
+        # Save predictions if specified
+        if args.save_predictions:
+            save_predictions(predictions_nested, args.save_predictions)
+        
+    if predictions_nested is not None and args.test and test_data is not None:
+
         print("\n ** Evaluating HMM part-of-speech tagger **")
-        accuracy = hmm.evaluate(test_data)
+        
+        # Calculate accuracy manually from the loaded/predicted data 
+        # (Since we might have loaded predictions without the HMM object)
+        total = 0
+        correct = 0
+        for gold_sent, pred_sent in zip(test_data, predictions_nested):
+            for (_, gold_tag), (_, pred_tag) in zip(gold_sent, pred_sent):
+                total += 1
+                if gold_tag == pred_tag:
+                    correct += 1
+        
+        accuracy = correct / total if total > 0 else 0.0
         print(f"    > Tagging accuracy on test set: {accuracy * 100:.2f}%")
         
-    if args.matrix:
+        if args.matrix:
             print("\n ** Plotting confusion matrix **")
             
             # Determine the title based on the mode
-            model_title = args.load_model.name if args.load_model else f"New HMM (λ={args.smoothing})"
+            if args.load_model:
+                model_title = args.load_model.name
+            elif args.load_predictions:
+                 # Title reflects the loaded prediction file
+                 model_title = f"Loaded Predictions: {args.load_predictions.name}"
+            else:
+                 model_title = f"New HMM (λ={args.smoothing})"
             
             plot_confusion_matrix(
                 test_data_tagged=test_data, 
@@ -115,6 +165,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--matrix", action="store_true",
         help="If True, plot confusion matrix after evaluation"
+    )
+
+    parser.add_argument(
+        "--save-predictions", type=Path, default=None,
+        help="Path to save the predicted tags to a text file."
+    )
+
+    parser.add_argument(
+        "--load-predictions", type=Path, default=None,
+        help="Path to load pre-calculated predicted tags from a text file. \nRequires --test data to verify against gold tags."
     )
     
     args = parser.parse_args()
