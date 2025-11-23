@@ -6,6 +6,13 @@
 
 from pathlib import Path
 from conllu import parse_incr
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import sys
+import pickle
+from hmm import HMM
 
 def load_conllu(file_path):
     """
@@ -39,16 +46,78 @@ def save_model(obj, path):
     with open(path, "wb") as f:
         pickle.dump(obj, f)
 
-def load_pickle(path):
-    """
-    Load a pickle object, e.g. a trained model, from file.
     
+def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tagger"):
+    """
+    Calculates and plots a confusion matrix for PoS tagging results.
+
+    This function first flattens the list of (word, tag) tuples from the 
+    HMM output into single lists of gold tags and predicted tags, then 
+    generates a confusion matrix heatmap.
+
     Args:
-        path (Path or str): path to the pickle file
-    
-    Returns:
-        the loaded object
+        test_data_tagged (list): The list of test sentences, where each sentence
+                                 is a list of (word, gold_tag) tuples.
+        predictions (list): The list of predicted sentences, where each sentence
+                            is a list of (word, predicted_tag) tuples (from HMM.predict).
+        model_name (str): The name of the model to display in the plot title.
     """
-    import pickle
-    with open(path, "rb") as f:
-        return pickle.load(f)
+    
+    # 1. Flatten the data and extract tag lists
+    gold_tags = []
+    pred_tags = []
+    
+    for gold_sent, pred_sent in zip(test_data_tagged, predictions):
+        # We assume the sentences have the same length due to the Viterbi design.
+        for (_, gold_tag), (_, pred_tag) in zip(gold_sent, pred_sent):
+            gold_tags.append(gold_tag)
+            pred_tags.append(pred_tag)
+
+    # 2. Get the unique set of all tags (classes)
+    # Use the tags from the gold standard to define the class order
+    tags = sorted(list(set(gold_tags)))
+
+    # 3. Calculate the Confusion Matrix
+    # The 'labels' parameter ensures the matrix is ordered by our tag list
+    cm = confusion_matrix(gold_tags, pred_tags, labels=tags)
+    
+    # Optional: Normalize the matrix for better visualization of error distribution
+    # cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    # 4. Plot the Heatmap
+    plt.figure(figsize=(12, 10)) # Increase size for better readability of tag labels
+    
+    # We use raw counts (fmt='d') or normalized (fmt='.2f')
+    sns.heatmap(
+        cm, 
+        annot=True, 
+        fmt='d',          # 'd' for integer counts
+        cmap='Blues',
+        xticklabels=tags, 
+        yticklabels=tags,
+        cbar_kws={'label': 'Number of Instances'}
+    )
+    
+    # Add labels and title
+    plt.xlabel(f"Predicted Tag\nAccuracy: {cm.trace() / cm.sum():.4f}", fontsize=14)
+    plt.ylabel("Actual (Gold) Tag", fontsize=14)
+    plt.title(f"Confusion Matrix - {model_name}", fontsize=16)
+    
+    # Ensure all labels are visible (especially important for small plots)
+    plt.yticks(rotation=0)
+    plt.xticks(rotation=90)
+    
+    plt.tight_layout()
+    plt.show()
+
+def load_model(path: Path) -> HMM:
+    """Loads a trained HMM model from a file."""
+    try:
+        with open(path, 'rb') as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        print(f"Error: Model file not found at {path}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error loading model from {path}: {e}")
+        sys.exit(1)

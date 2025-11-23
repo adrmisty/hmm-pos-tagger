@@ -5,3 +5,5 @@ conllu
 tqdm
 scikit-learn
 pypickle
+matplotlib
+seaborn
