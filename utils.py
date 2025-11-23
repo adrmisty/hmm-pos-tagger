@@ -63,7 +63,6 @@ def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tag
         model_name (str): The name of the model to display in the plot title.
     """
     
-    # 1. Flatten the data and extract tag lists
     gold_tags = []
     pred_tags = []
     
@@ -73,21 +72,13 @@ def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tag
             gold_tags.append(gold_tag)
             pred_tags.append(pred_tag)
 
-    # 2. Get the unique set of all tags (classes)
     # Use the tags from the gold standard to define the class order
     tags = sorted(list(set(gold_tags)))
 
-    # 3. Calculate the Confusion Matrix
-    # The 'labels' parameter ensures the matrix is ordered by our tag list
     cm = confusion_matrix(gold_tags, pred_tags, labels=tags)
-    
-    # Optional: Normalize the matrix for better visualization of error distribution
-    # cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
-    # 4. Plot the Heatmap
     plt.figure(figsize=(12, 10)) # Increase size for better readability of tag labels
     
-    # We use raw counts (fmt='d') or normalized (fmt='.2f')
     sns.heatmap(
         cm, 
         annot=True, 
@@ -98,12 +89,11 @@ def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tag
         cbar_kws={'label': 'Number of Instances'}
     )
     
-    # Add labels and title
+    # Labels and title
     plt.xlabel(f"Predicted Tag\nAccuracy: {cm.trace() / cm.sum():.4f}", fontsize=14)
     plt.ylabel("Actual (Gold) Tag", fontsize=14)
     plt.title(f"Confusion Matrix - {model_name}", fontsize=16)
     
-    # Ensure all labels are visible (especially important for small plots)
     plt.yticks(rotation=0)
     plt.xticks(rotation=90)
     
