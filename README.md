@@ -8,14 +8,14 @@ This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** tr
 ## TODOS
 
 For the code:
-- implement dumping of tagging prediction for test data into text file
+- implement dumping of tagging prediction for test data into text file-DONE
 - evaluate other metrics apart from accuracy (precision, recall, f1)
 - analyze how to improve accuracy
   --> smoothing?
   --> other techniques?
 
 #TODOs-Colab:
-once we have improved the accuracy, repeat the experiments for the new versions of the model for the 3 languages (English - Dutch - Greek) and do a confusion matrix to identify trends in incorrect tagging of certain PoS?
+from observing the CM, analyze what can be added to help each lang's model improve tagging of most problematic classes
 
 
 ## 📌 Project Overview
