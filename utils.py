@@ -14,6 +14,7 @@ import sys
 import pickle
 from hmm import HMM
 from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
 def load_conllu(file_path):
     """
@@ -76,6 +77,15 @@ def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tag
     tags = sorted(list(set(gold_tags)))
 
     cm = confusion_matrix(gold_tags, pred_tags, labels=tags)
+    # Compute per-tag precision, recall, F1, and support
+    precision, recall, f1, support = precision_recall_fscore_support(
+        gold_tags,
+        pred_tags,
+        labels=tags,
+        zero_division=0
+    )
+
+    accuracy = cm.trace() / cm.sum() if cm.sum() > 0 else 0.0
 
     print("\n=== Precision / Recall / F1-score per tag ===\n")
     print(classification_report(gold_tags, pred_tags, labels=tags, digits=4))
@@ -100,6 +110,31 @@ def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tag
     plt.yticks(rotation=0)
     plt.xticks(rotation=90)
     
+    plt.tight_layout()
+    plt.show()
+
+    # Show precision / recall / F1 in a separate figure
+    # Build a small monospaced table as text
+    lines = []
+    lines.append(f"{'TAG':<6}{'P':>6}{'R':>6}{'F1':>6}{'N':>6}")
+    lines.append("-" * 30)
+    for tag, p, r, f, n in zip(tags, precision, recall, f1, support):
+        lines.append(f"{tag:<6}{p:>6.2f}{r:>6.2f}{f:>6.2f}{int(n):>6}")
+
+    # macro averages
+    macro_p = precision.mean()
+    macro_r = recall.mean()
+    macro_f = f1.mean()
+    lines.append("-" * 30)
+    lines.append(f"{'MACRO':<6}{macro_p:>6.2f}{macro_r:>6.2f}{macro_f:>6.2f}{'':>6}")
+
+    text = "\n".join(lines)
+
+    # create a new figure for the text
+    plt.figure(figsize=(6, 8))
+    plt.axis("off")
+    plt.title(f"Precision / Recall / F1 per tag\n{model_name}", fontsize=12)
+    plt.text(0.0, 1.0, text, family="monospace", va="top", fontsize=10)
     plt.tight_layout()
     plt.show()
 
