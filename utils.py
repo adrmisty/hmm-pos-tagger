@@ -13,6 +13,7 @@ import numpy as np
 import sys
 import pickle
 from hmm import HMM
+from sklearn.metrics import classification_report
 
 def load_conllu(file_path):
     """
@@ -75,6 +76,9 @@ def plot_confusion_matrix(test_data_tagged, predictions, model_name="HMM PoS Tag
     tags = sorted(list(set(gold_tags)))
 
     cm = confusion_matrix(gold_tags, pred_tags, labels=tags)
+
+    print("\n=== Precision / Recall / F1-score per tag ===\n")
+    print(classification_report(gold_tags, pred_tags, labels=tags, digits=4))
 
     plt.figure(figsize=(12, 10)) # Increase size for better readability of tag labels
     
