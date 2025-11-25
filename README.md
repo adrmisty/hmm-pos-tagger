@@ -1,39 +1,43 @@
-# 🧠 Hidden Markov Model PoS Tagger
+# 🧠 Hidden Markov model PoS tagger
 ## Computational Syntax team project
 
-This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** trained and evaluated on two datasets from the **Universal Dependencies (UD)** treebanks.  
+This project implements a **Hidden Markov model (HMM) part-of-speech tagger** trained and evaluated on three language datasets (English, Dutch and Greek) from the **Universal Dependencies (UD)** treebanks.  
 
 ---
 
 ## TODOS
 
-For the code:
-- implement dumping of tagging prediction for test data into text file-DONE
-- evaluate other metrics apart from accuracy (precision, recall, f1)
-- analyze how to improve accuracy
-  --> smoothing?
-  --> other techniques?
+#TODOs-Repo:
+- [] once Colab/code effectively finished, update the README.md accordingly and review the whole project to add/review documentation and clean code practices
+
+#TODOs-Code:
+- [] impl. recognition assistance for PNOUN vs. NOUN: possibly there are 'more unseen'/less freq. instances of a word based on its capitalization, which might fall under the UNK threshold, so an idea is to create an extra rare-word class <UNK_CAP> that accounts for rare, capitalized words
 
 #TODOs-Colab:
-from observing the CM, analyze what can be added to help each lang's model improve tagging of most problematic classes
+- [] add more reflection/thinking process/explanations of why results are the way they are, in between CM discussions
+- [] test metrics/plot new CMs based on the prev. PNOUN fix
 
+---
 
-## 📌 Project Overview
+## 1. Project overview
 
-**We develop an HMM-based POS tagger with:
+We develop an HMM-based POS tagger with:
 
 - Estimation of transition probabilities (tag → tag) and emission probabilities (tag → word), trained on UD data
 - Viterbi decoding for inference
 
 ---
 
-## 📊 Experiments
+## 2. Experiments
 
-We run experiments on **2 Universal Dependencies treebanks** (https://universaldependencies.org/) to observe and compare tagging accuracy of our HMM tagger.
+We run experiments on **three Universal Dependencies treebank datasets** (https://universaldependencies.org/) to observe and compare tagging accuracy, precision and recall of our HMM tagger.
+The tested languages of our choice have been: English, Dutch and Greek, as they are all languages that the authors speak and they also present varying degrees of word order freedom, morphology richness and two different alphabets.
+
+The experiments have been ran and discussed on this Google Colab notebook, iteratively testing and improving the code based on our findings and hypotheses: https://colab.research.google.com/drive/1eHTZVZ-hBdAIMua51VrxBwzZwJITv9d7?usp=sharing
 
 ---
 
-## 📁 Project Structure
+## 3. Project structure
 
 | File/Folder        | Description |
 |--------------------|-------------|
@@ -46,15 +50,15 @@ We run experiments on **2 Universal Dependencies treebanks** (https://universald
 
 ---
 
-## 🚀 How to Run
+## 4. How to run
 
-### 1. Install dependencies
+### a. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Train/Evaluate the HMM tagger on UD data
+### b. Train/Evaluate the HMM tagger on UD data
 
 ```bash
 python train.py \
@@ -66,19 +70,19 @@ python train.py \
 ---
 
 
-## 🔬 Methods
+## 5. Methods
 
-### Training
+### a. Training
 
 - Transition and emission probabilities are estimated from tag sequence and observed word-tag pairs in the training dataset via **Maximum Likelihood Estimation**.
 
 - Unknown words are handled using `<UNK>` tokens for words with frequency under a certain threshold.
 
-### Decoding
+### b. Inference
 
 - The **Viterbi algorithm** is used to find the most probable tag sequence for an untagged sentence, via dynamic programming.
 
-### Usage
+### Basic usage
 
 Supported directly in CLI, the pipeline for training and evaluating an HMM tagger on training/testing data from Universal Dependencies is as follows: 
 
@@ -105,7 +109,7 @@ print(f"Tagging accuracy: {accuracy:.2f}%")
 
 ---
 
-## 📖 References
+## 6. References
 
 - Zeman, Daniel; et al., 2019, 
   Universal Dependencies 2.5, LINDAT/CLARIAH-CZ digital library at the Institute of Formal and Applied Linguistics (ÚFAL), 
@@ -116,13 +120,12 @@ print(f"Tagging accuracy: {accuracy:.2f}%")
 
 ---
 
-## 👥 Authors
+## 7. Authors
 
 **Adriana Rodríguez Flórez**  
 **Vera Senderowicz Guerra**  
 **Emiel Vanderghinste Julien**
 
-November 2026
+November 2025
 EMLCT/HAP-LAP master's students  
 University of the Basque Country
-
