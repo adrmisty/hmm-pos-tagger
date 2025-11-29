@@ -5,6 +5,7 @@
 # nov-2026
 
 from collections import defaultdict
+import math
 
 class HMM:
     """Hidden Markov Model (HMM) POS tagger class.
@@ -31,7 +32,7 @@ class HMM:
         self.smooth_lambda = smooth
         
         # fixed: convert probs to logs to avoid numerical underflow
-        self.log_zero = -1e10
+        self.log_zero = -float('inf')  # log(0) equivalent
         
     def train(self, training_data: list):
         """
@@ -90,63 +91,82 @@ class HMM:
     def _estimate_probs(self, init_c, transition_c, emission_c, tag_c, sentence_c):
         """Estimates HMM probabilities using Maximum Likelihood Estimation (MLE) with Laplace smoothing."""
         # total sizes of each set
-        T = len(self.tags)
-        V = len(self.vocab)
-        N = sentence_c
+        T = len(self.tags) # size of the tagset
+        V = len(self.vocab) # size of the vocabulary
+        N = sentence_c # total number of sentences
         
-        # division by |tagset| / |vocab| * multiplied by smoothing factor?
+        # Helper function to safely convert raw probabilities to log probabilities.
+        def log_prob(p):
+            """Returns log(p) or self.log_zero (negative infinity equivalent) if p is 0."""
+            # Note: self.log_zero should be set to -float('inf')
+            return math.log(p) if p > 0 else self.log_zero
 
-        # start of sequence: P(tag | <s>)
+        # 1. Start of Sequence Probabilities: P(tag | <s>)
+        # Uses Add-k smoothing where k=lambda_val and the size is T (tagset size)
         lambda_val = self.smooth_lambda if self.smooth_lambda is not None else 0
         lambda_T = lambda_val * T
         denominator = N + lambda_T
 
         for tag in self.tags:
-            # (times tag seen at start of sentences) + lambda / (total sentences) + (lambda * |tagset|)
+            # P(tag | <s>) = (Count(tag at start) + lambda) / (N + lambda * |Tagset|)
             numerator = init_c.get(tag, 0) + lambda_val
-            self.init_p[tag] = numerator / denominator if denominator > 0 else 0.0
+            raw_probability = numerator / denominator if denominator > 0 else 0.0
+            self.init_p[tag] = log_prob(raw_probability)
 
-        # transition: P(tag_i | tag_{i-1})
+        # 2. Transition Probabilities: P(tag_i | tag_{i-1})
+        # Uses Add-k smoothing where k=lambda_val and the size is T (tagset size)
         for prev_tag in self.tags:
-            prev_transitions = tag_c.get(prev_tag, 0)
+            prev_transitions = tag_c.get(prev_tag, 0) # total times prev_tag appears
             self.transition_p[prev_tag] = {} 
         
             denominator = prev_transitions + lambda_T
 
-            # division by 0 (pathological case only)
+            # Division by 0 (pathological case: prev_tag was never observed)
             if denominator == 0:
-                 uniform_prob = 1 / T if T > 0 else 0.0
-                 for tag in self.tags:
-                      self.transition_p[prev_tag][tag] = uniform_prob
-                 continue
-                 
+                # Calculate uniform log probability instead
+                uniform_prob = 1 / T if T > 0 else 0.0
+                uniform_log_prob = log_prob(uniform_prob)
+                for tag in self.tags:
+                    # NOTE: Storing the log probability here
+                    self.transition_p[prev_tag][tag] = uniform_log_prob
+                continue
+                
             for tag in self.tags:
+                # P(tag | prev_tag) = (Count(prev_tag -> tag) + lambda) / (Count(prev_tag) + lambda * |Tagset|)
                 count = transition_c.get(prev_tag, {}).get(tag, 0)
                 numerator = count + lambda_val
-                self.transition_p[prev_tag][tag] = numerator / denominator
+                raw_probability = numerator / denominator
+                # CONVERT TO LOG
+                self.transition_p[prev_tag][tag] = log_prob(raw_probability)
 
-        # emission: P(word | tag)
+        # 3. Emission Probabilities: P(word | tag)
+        # Uses Add-k smoothing where k=lambda_val and the size is V (vocabulary size)
         lambda_V = lambda_val * V
 
         for tag in self.tags:
-            tag_emissions = tag_c.get(tag, 0)
+            tag_emissions = tag_c.get(tag, 0) # total times tag appears
             self.emission_p[tag] = {}
 
-            # smoothed denom: Count(tag) + lambda * V
+            # Smoothed denominator: Count(tag) + lambda * |Vocab|
             denominator = tag_emissions + lambda_V
 
-            # case: division by 0
-            # calculate uniform prob instead
+            # Case: division by 0 (tag was never observed)
             if denominator == 0:
-                 uniform_prob = 1 / V if V > 0 else 0.0
-                 for word in self.vocab:
-                      self.emission_p[tag][word] = uniform_prob
-                 continue
+                # Calculate uniform log probability instead
+                uniform_prob = 1 / V if V > 0 else 0.0
+                uniform_log_prob = log_prob(uniform_prob)
+                for word in self.vocab:
+                    # NOTE: Storing the log probability here
+                    self.emission_p[tag][word] = uniform_log_prob
+                continue
 
             for word in self.vocab:
+                # P(word | tag) = (Count(tag -> word) + lambda) / (Count(tag) + lambda * |Vocab|)
                 count = emission_c.get(tag, {}).get(word, 0)
                 numerator = count + lambda_val
-                self.emission_p[tag][word] = numerator / denominator
+                raw_probability = numerator / denominator
+                # CONVERT TO LOG
+                self.emission_p[tag][word] = log_prob(raw_probability)
 
     def _count_probs(self, training_data: list, words: tuple):
         """Counts occurrences of words/their rarity to estimate HMM probabilities."""
