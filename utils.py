@@ -198,3 +198,73 @@ def load_predictions(path: Path) -> list:
     except Exception as e:
         print(f"Error loading predictions from {path}: {e}")
         return None
+    
+def analyze_tag_errors(gold_data: list, predictions: list, target_tag: str, error_type: str):
+    """
+    Analyzes and prints sentences containing problematic instances of a target tag 
+    based on recall (false negatives) or precision (false positives).
+
+    Args:
+        gold_data (list): Nested list of gold standard sentences [(word, gold_tag)].
+        predictions (list): Nested list of predicted sentences [(word, pred_tag)].
+        target_tag (str): The tag to analyze (e.g., 'NOUN', 'VERB').
+        error_type (str): 'recall' for False Negatives, 'precision' for False Positives.
+    """
+    
+    # Validation
+    if error_type not in ['recall', 'precision']:
+        print(f"Error: Invalid error_type '{error_type}'. Must be 'recall' or 'precision'.")
+        return
+
+    print(f"\n--- Error Analysis for Tag: {target_tag} (Mode: {error_type.upper()}) ---")
+    
+    error_count = 0
+    
+    # We iterate over sentences
+    for gold_sent, pred_sent in zip(gold_data, predictions):
+        sentence_errors = []
+        
+        # We also need the original words to reconstruct the sentence
+        words = [word for word, _ in gold_sent]
+
+        # We iterate over words and tags in the sentence
+        for i, ((gold_word, gold_tag), (pred_word, pred_tag)) in enumerate(zip(gold_sent, pred_sent)):
+            
+            is_error = False
+            highlight_reason = None
+            
+            if error_type == 'recall':
+                # RECALL FAILURE (False Negative): 
+                # Gold is TARGET_TAG, but Prediction is NOT TARGET_TAG.
+                if gold_tag == target_tag and pred_tag != target_tag:
+                    is_error = True
+                    highlight_reason = f"GOLD: {target_tag} | PRED: {pred_tag}"
+            
+            elif error_type == 'precision':
+                # PRECISION FAILURE (False Positive): 
+                # Prediction is TARGET_TAG, but Gold is NOT TARGET_TAG.
+                if pred_tag == target_tag and gold_tag != target_tag:
+                    is_error = True
+                    highlight_reason = f"PRED: {target_tag} | GOLD: {gold_tag}"
+            
+            if is_error:
+                sentence_errors.append({
+                    'index': i,
+                    'word': gold_word,
+                    'reason': highlight_reason
+                })
+
+        # If errors were found in the sentence, print the full context
+        if sentence_errors:
+            error_count += len(sentence_errors)
+            
+            # Print the entire sentence for context
+            full_sentence = " ".join(words)
+            print(f"\n[Error Count: {len(sentence_errors)} instances found in this sentence]")
+            print(f"Sentence: {full_sentence}")
+            
+            # Print details for each error
+            for error in sentence_errors:
+                print(f"  > WORD: '{error['word']}' (Index: {error['index']}) - {error['reason']}")
+
+    print(f"\n--- Total problematic instances found for {target_tag} ({error_type}): {error_count} ---")
