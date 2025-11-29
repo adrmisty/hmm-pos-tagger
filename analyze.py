@@ -11,7 +11,67 @@ import sys
 from utils_io import load_conllu, load_model, load_predictions
 from utils_eval import plot_confusion_matrix, analyze_tag_errors, compute_metrics
 
+def _get_predictions(args, test_data):
+    """
+    Determines the source of predictions (File vs Model) and retrieves them.
+    Returns: (predictions_nested, source_name)
+    """
+    if args.load_predictions:
+        print(f"\n ** Loading pre-calculated predictions **")
+        preds = load_predictions(args.load_predictions)
+        if preds is None:
+            sys.exit("Error: Could not load predictions file.")
+        return preds, f"File: {args.load_predictions.name}"
 
+    elif args.load_model:
+        print(f"** Loading pre-trained HMM model from: {args.load_model} **")
+        hmm = load_model(args.load_model)
+        
+        print("\n ** Running HMM prediction (Viterbi algorithm) **")
+        # Extract just the words for prediction
+        test_words_nested = [[word for (word, _) in sent] for sent in test_data]
+        preds = hmm.predict(test_words_nested)
+        return preds, f"Model: {args.load_model.name}"
+
+    else:
+        sys.exit("Error: Must provide either --load-model or --load-predictions.")
+
+
+def _display_metrics(metrics):
+    """Prints formatted evaluation metrics to stdout."""
+    print("\n ** Evaluating HMM part-of-speech tagger **")
+    print(f"    > Tagging Accuracy: {metrics['accuracy'] * 100:.2f}%")
+    print(f"    > Precision: {metrics['precision'] * 100:.2f}%")
+    print(f"    > Recall:    {metrics['recall'] * 100:.2f}%")
+    print(f"    > F1-Score:  {metrics['f1'] * 100:.2f}%")
+
+
+def _visualize(args, test_data, predictions, f1_score, source_name):
+    """Conditional logic for plotting the confusion matrix."""
+    if args.matrix:
+        print("\n ** Plotting confusion matrix **")
+        
+        # Construct a descriptive title
+        plot_title = f"{source_name} (F1: {f1_score:.4f})"
+        
+        plot_confusion_matrix(
+            test_data_tagged=test_data, 
+            predictions=predictions, 
+            model_name=plot_title
+        )
+
+
+def _specific_error_analysis(args, test_data, predictions):
+    """Conditional logic for specific tag error analysis."""
+    if args.target_tag:
+        analyze_tag_errors(
+            gold_data=test_data, 
+            predictions=predictions, 
+            target_tag=args.target_tag, 
+            error_type=args.error_type,
+            mispredicted_as=args.mispredicted_as
+        )
+# --------------------------------------------------------------------------------------
 def main(args):
     """
     HMM POS tagger - evaluation & analysis
@@ -114,66 +174,3 @@ if __name__ == "__main__":
 
     main(args)
 
-# --------------------------------------------------------------------------------------
-
-
-def _get_predictions(args, test_data):
-    """
-    Determines the source of predictions (File vs Model) and retrieves them.
-    Returns: (predictions_nested, source_name)
-    """
-    if args.load_predictions:
-        print(f"\n ** Loading pre-calculated predictions **")
-        preds = load_predictions(args.load_predictions)
-        if preds is None:
-            sys.exit("Error: Could not load predictions file.")
-        return preds, f"File: {args.load_predictions.name}"
-
-    elif args.load_model:
-        print(f"** Loading pre-trained HMM model from: {args.load_model} **")
-        hmm = load_model(args.load_model)
-        
-        print("\n ** Running HMM prediction (Viterbi algorithm) **")
-        # Extract just the words for prediction
-        test_words_nested = [[word for (word, _) in sent] for sent in test_data]
-        preds = hmm.predict(test_words_nested)
-        return preds, f"Model: {args.load_model.name}"
-
-    else:
-        sys.exit("Error: Must provide either --load-model or --load-predictions.")
-
-
-def _display_metrics(metrics):
-    """Prints formatted evaluation metrics to stdout."""
-    print("\n ** Evaluating HMM part-of-speech tagger **")
-    print(f"    > Tagging Accuracy: {metrics['accuracy'] * 100:.2f}%")
-    print(f"    > Precision: {metrics['precision'] * 100:.2f}%")
-    print(f"    > Recall:    {metrics['recall'] * 100:.2f}%")
-    print(f"    > F1-Score:  {metrics['f1'] * 100:.2f}%")
-
-
-def _visualize(args, test_data, predictions, f1_score, source_name):
-    """Conditional logic for plotting the confusion matrix."""
-    if args.matrix:
-        print("\n ** Plotting confusion matrix **")
-        
-        # Construct a descriptive title
-        plot_title = f"{source_name} (F1: {f1_score:.4f})"
-        
-        plot_confusion_matrix(
-            test_data_tagged=test_data, 
-            predictions=predictions, 
-            model_name=plot_title
-        )
-
-
-def _specific_error_analysis(args, test_data, predictions):
-    """Conditional logic for specific tag error analysis."""
-    if args.target_tag:
-        analyze_tag_errors(
-            gold_data=test_data, 
-            predictions=predictions, 
-            target_tag=args.target_tag, 
-            error_type=args.error_type,
-            mispredicted_as=args.mispredicted_as
-        )
