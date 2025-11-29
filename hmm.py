@@ -171,10 +171,9 @@ class HMM:
     def _count_probs(self, training_data: list, words: tuple):
         """Counts occurrences of words/their rarity to estimate HMM probabilities."""
         N = len(training_data)
-        _, unk_words = words
+        _, unk_words = words # These are the original rare words
         
         # these counts are used to calculate the actual probs
-        # for estimating the HMM params (diving by totals of tagset/vocab size)
         init_c = defaultdict(int)
         transition_c = defaultdict(lambda: defaultdict(int))
         emission_c = defaultdict(lambda: defaultdict(int))
@@ -193,12 +192,15 @@ class HMM:
                 self.tags.add(tag)
                 tag_c[tag] += 1
 
-                # rare words
-                # (!) different types of rare words [typography]
+                # Determine the token to count: UNK-ified or the original word
+                token_to_count = word
                 if word in unk_words:
-                        word = self._unkify(word)                
-                        # emission (output) of a word given a tag
-                        emission_c[tag][word] += 1
+                    # If rare, use the UNK classification for counting
+                    token_to_count = self._unkify(word)
+                                        
+                # emission (output) of a word given a tag. 
+                # This must happen for ALL words in the training data.
+                emission_c[tag][token_to_count] += 1
                                 
                 # transition from prev tag to current it tag
                 if prev_tag is not None:
