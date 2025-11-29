@@ -1,60 +1,47 @@
-# 🧠 Hidden Markov Model PoS Tagger
+# 🧠 Hidden Markov model PoS tagger
 ## Computational Syntax team project
 
-This project implements a **Hidden Markov Model (HMM) part-of-speech tagger** trained and evaluated on two datasets from the **Universal Dependencies (UD)** treebanks.  
+## 1. Project overview
+
+This project implements a **Hidden Markov model (HMM) part-of-speech tagger** trained and evaluated on three language datasets (English, Dutch and Greek) from the **Universal Dependencies (UD)** treebanks.  
+
+It presents dedicated scripts for training, evaluation and post-processing to correct systematic tagging errors.
 
 ---
 
-## TODOS
+## 2. Experiments
 
-For the code:
-- implement dumping of tagging prediction for test data into text file
-- evaluate other metrics apart from accuracy (precision, recall, f1)
-- analyze how to improve accuracy
-  --> smoothing?
-  --> other techniques?
+We run experiments on **three Universal Dependencies treebank datasets** (https://universaldependencies.org/) to observe and compare tagging accuracy, precision and recall of our HMM tagger.
+The tested languages of our choice have been: English, Dutch and Greek, as they are all languages that the authors speak and they also present varying degrees of word order freedom, morphology richness and two different alphabets.
 
-#TODOs-Colab:
-once we have improved the accuracy, repeat the experiments for the new versions of the model for the 3 languages (English - Dutch - Greek) and do a confusion matrix to identify trends in incorrect tagging of certain PoS?
-
-
-## 📌 Project Overview
-
-**We develop an HMM-based POS tagger with:
-
-- Estimation of transition probabilities (tag → tag) and emission probabilities (tag → word), trained on UD data
-- Viterbi decoding for inference
+The experiments have been ran and discussed on this Google Colab notebook, iteratively testing and improving the code based on our findings and hypotheses: https://colab.research.google.com/drive/1eHTZVZ-hBdAIMua51VrxBwzZwJITv9d7?usp=sharing
 
 ---
 
-## 📊 Experiments
+## 3. Project structure
 
-We run experiments on **2 Universal Dependencies treebanks** (https://universaldependencies.org/) to observe and compare tagging accuracy of our HMM tagger.
+| File/Folder | Description |
+| :--- | :--- |
+| `hmm.py` | HMM class with training and inference logic |
+| `main.py` | Main pipeline for training and evaluation |
+| `analyze.py` | Evaluation script for metric evaluation and error analysis |
+| `postprocess.py` | Postprocessing script for applying heuristic rules |
+| `heuristics.py` | Definitions of post-processing rules |
+| `utils_io.py` | Data, model and results loading/saving |
+| `utils_eval.py` | Metrics calculation and plotting |
+| `data/` | UD datasets |
+| `results/` | Output folder for models and predictions |
 
----
 
-## 📁 Project Structure
+## 4. How to run
 
-| File/Folder        | Description |
-|--------------------|-------------|
-| `hmm.py`           | Core logic for HMM training and Viterbi decoding |
-| `utils.py`   | CoNLL-U dataset reading and preprocessing utilities |
-| `train.py`         | Script to train and evaluate the HMM on a UD dataset |
-| `models/`          | Saved trained HMM models (`.pkl`) |
-| `data/`            | UD datasets used for training/testing |
-| `README.md`        | Project description and usage guide |
-
----
-
-## 🚀 How to Run
-
-### 1. Install dependencies
+### a. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Train/Evaluate the HMM tagger on UD data
+### b. Train/Evaluate the HMM tagger on UD data
 
 ```bash
 python train.py \
@@ -63,49 +50,94 @@ python train.py \
   --model ./results/models/hmm.pkl
 ```
 
+### b. Train/Evaluate a HMM on UD data
+
+```bash
+python main.py \
+  --train ./data/en_ewt-ud-train.conllu \
+  --test ./data/en_ewt-ud-test.conllu \
+  --model ./results/models/en_hmm.pkl \
+  --smoothing 0.01
+```
+
+### c. Predict/Evaluate with an existing model
+
+```bash
+python main.py \
+  --load-model ./results/models/en_hmm.pkl \
+  --test ./data/en_ewt-ud-test.conllu \
+  --matrix
+```
+
+### d. Evaluate pre-computed predictions
+
+```bash
+python main.py \
+  --load-predictions ./results/predictions.txt \
+  --test ./data/en_ewt-ud-test.conllu
+```
+
+### e. Specific error analysis
+
+```bash
+python analyze.py \
+  --load-model ./results/models/en_hmm.pkl \
+  --test ./data/en_ewt-ud-test.conllu \
+  --target-tag NOUN --error-type recall
+```
+
+### f. Post-process tagging results
+
+```bash
+python postprocess.py \
+  --input-predictions ./results/predictions.txt \
+  --output-dir ./results/post_processed/
+```
 ---
 
 
-## 🔬 Methods
+## 5. Methods
 
-### Training
+### a. Training
 
-- Transition and emission probabilities are estimated from tag sequence and observed word-tag pairs in the training dataset via **Maximum Likelihood Estimation**.
+- Transition and emission probabilities are estimated from tag sequence and observed word-tag pairs in the training dataset via **Maximum Likelihood Estimation** with Laplace smoothing.
 
-- Unknown words are handled using `<UNK>` tokens for words with frequency under a certain threshold.
+- Unknown words are are mapped to pseudo-tokens based on typographic features (capitalization, digits...).
 
-### Decoding
+### b. Inference
 
-- The **Viterbi algorithm** is used to find the most probable tag sequence for an untagged sentence, via dynamic programming.
+- The **Viterbi algorithm** is used to find the most probable tag sequence for an untagged sentence, via dynamic programming, in the log probability space.
 
-### Usage
+### Basic usage
 
 Supported directly in CLI, the pipeline for training and evaluating an HMM tagger on training/testing data from Universal Dependencies is as follows: 
 
 ```python
 from hmm import HMM
-from utils import load_conllu, save_models
+from utils_io import load_conllu
+from utils_eval import compute_metrics
 
-# load Universal Dependencies data
-train_data = load_conllu("./data/UD_Basque-BDT/eu_bdt-ud-train.conllu")
-test_data = load_conllu("./data/UD_Basque-BDT/eu_bdt-ud-train.conllu")
-model_path = "./results/models/hmm-pos-tagger.pkl"
+# 1. load necessary data
+train_data = load_conllu("./data/en_ewt-ud-train.conllu")
+test_data = load_conllu("./data/en_ewt-ud-test.conllu")
 
-# train HMM on UD data
-hmm = HMM()
+# 2. train the POS tagger
+hmm = HMM(smooth=0.01)
 hmm.train(train_data)
 
-# (optionally but recommended) persist trained model
-save_model(model_path, hmm)
+# 3. run inference
+words = [[w for w, t in sent] for sent in test_data]
+gold_tags = [t for sent in test_data for w, t in sent]
 
-# evaluate POS tagging prediction accuracy
-accuracy = hmm.evaluate(test_data)
-print(f"Tagging accuracy: {accuracy:.2f}%")
-```
+# 4. evaluate the predictions
+preds = hmm.predict(words)
+pred_tags = [t for sent in preds for w, t in sent]
 
+metrics = compute_metrics(gold_tags, pred_tags)
+print(f"Accuracy: {metrics['accuracy']:.2%}")```
 ---
 
-## 📖 References
+## 6. References
 
 - Zeman, Daniel; et al., 2019, 
   Universal Dependencies 2.5, LINDAT/CLARIAH-CZ digital library at the Institute of Formal and Applied Linguistics (ÚFAL), 
@@ -116,13 +148,12 @@ print(f"Tagging accuracy: {accuracy:.2f}%")
 
 ---
 
-## 👥 Authors
+## 7. Authors
 
 **Adriana Rodríguez Flórez**  
 **Vera Senderowicz Guerra**  
 **Emiel Vanderghinste Julien**
 
-November 2026
+November 2025
 EMLCT/HAP-LAP master's students  
 University of the Basque Country
-

@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:faf2e038df960c224f7f5fd9066668b6e312565af1ab00d4a51f6d7789090a01
-size 52
+numpy
+pandas
+spacy
+conllu
+tqdm
+scikit-learn
+pypickle
+matplotlib
+seaborn

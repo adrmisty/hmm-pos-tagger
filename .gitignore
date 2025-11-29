@@ -11,5 +11,8 @@ venv/
 # vsc
 .vscode/
 
-# generated results
+# data
+data/
+*.pkl
+*.ds_store
 results/
