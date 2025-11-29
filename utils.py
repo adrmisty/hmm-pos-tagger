@@ -199,32 +199,35 @@ def load_predictions(path: Path) -> list:
         print(f"Error loading predictions from {path}: {e}")
         return None
     
-def analyze_tag_errors(gold_data: list, predictions: list, target_tag: str, error_type: str):
+def analyze_tag_errors(gold_data: list, predictions: list, target_tag: str, error_type: str, mispredicted_as: str = None):
     """
     Analyzes and prints sentences containing problematic instances of a target tag 
-    based on recall (false negatives) or precision (false positives).
+    based on recall (false negatives), precision (false positives), or a specific misprediction.
 
     Args:
         gold_data (list): Nested list of gold standard sentences [(word, gold_tag)].
         predictions (list): Nested list of predicted sentences [(word, pred_tag)].
-        target_tag (str): The tag to analyze (e.g., 'NOUN', 'VERB').
-        error_type (str): 'recall' for False Negatives, 'precision' for False Positives.
+        target_tag (str): The GOLD tag to analyze (e.g., 'NOUN', 'VERB').
+        error_type (str): 'recall', 'precision', or 'specific'.
+        mispredicted_as (str, optional): The predicted tag to filter by, used only 
+                                         when error_type is 'specific'. Defaults to None.
     """
     
-    # Validation
-    if error_type not in ['recall', 'precision']:
-        print(f"Error: Invalid error_type '{error_type}'. Must be 'recall' or 'precision'.")
-        return
-
-    print(f"\n--- Error Analysis for Tag: {target_tag} (Mode: {error_type.upper()}) ---")
+    # --- Logging Setup ---
+    if error_type == 'specific':
+        # Custom log output for specific error type
+        log_type = f"Specific Error (GOLD: {target_tag} -> PRED: {mispredicted_as})"
+    else:
+        # Standard log output for recall/precision analysis
+        log_type = f"{error_type.upper()} Failure ({target_tag})"
+        
+    print(f"\n--- Error Analysis for Tag: {target_tag} (Mode: {log_type}) ---")
     
     error_count = 0
     
     # We iterate over sentences
     for gold_sent, pred_sent in zip(gold_data, predictions):
         sentence_errors = []
-        
-        # We also need the original words to reconstruct the sentence
         words = [word for word, _ in gold_sent]
 
         # We iterate over words and tags in the sentence
@@ -234,18 +237,22 @@ def analyze_tag_errors(gold_data: list, predictions: list, target_tag: str, erro
             highlight_reason = None
             
             if error_type == 'recall':
-                # RECALL FAILURE (False Negative): 
-                # Gold is TARGET_TAG, but Prediction is NOT TARGET_TAG.
+                # RECALL FAILURE (False Negative): Gold is TARGET_TAG, but Prediction is NOT TARGET_TAG.
                 if gold_tag == target_tag and pred_tag != target_tag:
                     is_error = True
                     highlight_reason = f"GOLD: {target_tag} | PRED: {pred_tag}"
             
             elif error_type == 'precision':
-                # PRECISION FAILURE (False Positive): 
-                # Prediction is TARGET_TAG, but Gold is NOT TARGET_TAG.
+                # PRECISION FAILURE (False Positive): Prediction is TARGET_TAG, but Gold is NOT TARGET_TAG.
                 if pred_tag == target_tag and gold_tag != target_tag:
                     is_error = True
                     highlight_reason = f"PRED: {target_tag} | GOLD: {gold_tag}"
+            
+            elif error_type == 'specific':
+                # SPECIFIC MISPREDICTION: Gold is TARGET_TAG, AND Prediction is MISPREDICTED_AS tag.
+                if gold_tag == target_tag and pred_tag == mispredicted_as:
+                    is_error = True
+                    highlight_reason = f"GOLD: {target_tag} | PRED: {pred_tag}"
             
             if is_error:
                 sentence_errors.append({
@@ -267,4 +274,4 @@ def analyze_tag_errors(gold_data: list, predictions: list, target_tag: str, erro
             for error in sentence_errors:
                 print(f"  > WORD: '{error['word']}' (Index: {error['index']}) - {error['reason']}")
 
-    print(f"\n--- Total problematic instances found for {target_tag} ({error_type}): {error_count} ---")
+    print(f"\n--- Total problematic instances found for {target_tag} ({log_type}): {error_count} ---")

@@ -2,18 +2,9 @@ import argparse
 from pathlib import Path
 import sys
 
-# --- IMPORTANT IMPORTS ---
-# We still need utils for loading data and plotting, but we will define 
-# the metric calculation logic directly in main for this script.
-try:
-    from utils import load_conllu, load_model, load_predictions, plot_confusion_matrix, analyze_tag_errors
-    # NOTE: We'll import required metric functions from scikit-learn here 
-    # to ensure they are available, assuming utils.py imports them already.
-    from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-except ImportError as e:
-    print(f"Error: Could not import necessary modules. Check utils.py and ensure sklearn is installed.")
-    print(f"Details: {e}")
-    sys.exit(1)
+
+from utils import load_conllu, load_model, load_predictions, plot_confusion_matrix, analyze_tag_errors
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 
 def main(args):
@@ -99,11 +90,13 @@ def main(args):
         
     # --- 4. ERROR ANALYSIS (NEW FEATURE) ---
     if args.target_tag:
+        # Pass the new argument to the utility function
         analyze_tag_errors(
             gold_data=test_data, 
             predictions=predictions_nested, 
             target_tag=args.target_tag, 
-            error_type=args.error_type
+            error_type=args.error_type,
+            mispredicted_as=args.mispredicted_as # NEW ARGUMENT
         )
         
 # --- ARGUMENT PARSING AND ENTRY POINT ---
@@ -137,13 +130,19 @@ if __name__ == "__main__":
     # New arguments for analyze_tag_errors
     parser.add_argument(
         "--target-tag", type=str, default=None,
-        help="A specific tag (e.g., 'NOUN') to analyze for errors."
+        help="The GOLD tag (e.g., 'NOUN') to analyze for errors."
     )
     
     parser.add_argument(
         "--error-type", type=str, default='recall',
-        choices=['recall', 'precision'],
-        help="Type of error to analyze: 'recall' (False Negatives) or 'precision' (False Positives)."
+        choices=['recall', 'precision', 'specific'], # Added 'specific' choice
+        help="Type of error to analyze: 'recall' (False Negatives), 'precision' (False Positives), or 'specific' (use with --mispredicted-as)."
+    )
+    
+    # NEW ARGUMENT FOR SPECIFIC ERROR ANALYSIS
+    parser.add_argument(
+        "--mispredicted-as", type=str, default=None,
+        help="The PREDICTED tag (e.g., 'NOUN') when --target-tag is the GOLD tag. Must be used with --error-type specific."
     )
     
     args = parser.parse_args()
@@ -151,5 +150,10 @@ if __name__ == "__main__":
     # Final check for mutual exclusivity
     if args.load_model and args.load_predictions:
         parser.error("Cannot use both --load-model and --load-predictions simultaneously.")
+        
+    # Validation for new specific analysis mode
+    if args.error_type == 'specific':
+        if not args.target_tag or not args.mispredicted_as:
+            parser.error("When using --error-type specific, both --target-tag (GOLD) and --mispredicted-as (PREDICTED) must be provided.")
 
     main(args)
