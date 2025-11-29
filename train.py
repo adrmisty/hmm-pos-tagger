@@ -13,6 +13,34 @@ from utils_eval import plot_confusion_matrix, compute_metrics
 
 from hmm import HMM
 
+# redundantly reimplemented this here for simplicity
+def _quick_eval(test_data, predictions, model_name, args):
+    """
+    Calculates accuracy using shared utils, handles saving, and plots matrix.
+    """
+    if args.save_predictions:
+        save_predictions(predictions, args.save_predictions)
+
+    gold_tags = [tag for sent in test_data for word, tag in sent]
+    pred_tags = [tag for sent in predictions for word, tag in sent]
+
+    metrics = compute_metrics(gold_tags, pred_tags)
+
+    print(f"\n ** Evaluating HMM part-of-speech tagger ({model_name}) **")
+    print(f"    > Tagging Accuracy: {metrics['accuracy'] * 100:.2f}%")
+    print(f"    > Precision: {metrics['precision'] * 100:.2f}%")
+    print(f"    > Recall:    {metrics['recall'] * 100:.2f}%")
+    print(f"    > F1-Score:  {metrics['f1'] * 100:.2f}%")
+
+    if args.matrix:
+        print("\n ** Plotting confusion matrix **")
+        plot_confusion_matrix(
+            test_data_tagged=test_data, 
+            predictions=predictions, 
+            model_name=f"{model_name} (F1: {metrics['f1']:.4f})"
+        )
+        print(" ** Confusion matrix plotted **")
+
 def main(args):
     """
     HMM POS tagger - Pipeline
@@ -146,31 +174,3 @@ if __name__ == "__main__":
     main(args)
 
 # --------------------------------------------------------------------------------------
-
-# redundantly reimplemented this here for simplicity
-def _quick_eval(test_data, predictions, model_name, args):
-    """
-    Calculates accuracy using shared utils, handles saving, and plots matrix.
-    """
-    if args.save_predictions:
-        save_predictions(predictions, args.save_predictions)
-
-    gold_tags = [tag for sent in test_data for word, tag in sent]
-    pred_tags = [tag for sent in predictions for word, tag in sent]
-
-    metrics = compute_metrics(gold_tags, pred_tags)
-
-    print(f"\n ** Evaluating HMM part-of-speech tagger ({model_name}) **")
-    print(f"    > Tagging Accuracy: {metrics['accuracy'] * 100:.2f}%")
-    print(f"    > Precision: {metrics['precision'] * 100:.2f}%")
-    print(f"    > Recall:    {metrics['recall'] * 100:.2f}%")
-    print(f"    > F1-Score:  {metrics['f1'] * 100:.2f}%")
-
-    if args.matrix:
-        print("\n ** Plotting confusion matrix **")
-        plot_confusion_matrix(
-            test_data_tagged=test_data, 
-            predictions=predictions, 
-            model_name=f"{model_name} (F1: {metrics['f1']:.4f})"
-        )
-        print(" ** Confusion matrix plotted **")
