@@ -2,11 +2,13 @@
 # adriana r.f. (@adrmisty)
 # vera s.g. (@verasenderowiczg)
 # emiel v.j. (@emielvanderghinste)
-# nov-2026
+# nov-2025
 
 import argparse
 from pathlib import Path
 import sys
+
+import matplotlib.pyplot as plt
 
 from utils_io import load_conllu, load_model, load_predictions
 from utils_eval import plot_confusion_matrix, analyze_tag_errors, compute_metrics
@@ -59,6 +61,7 @@ def _visualize(args, test_data, predictions, f1_score, source_name):
             predictions=predictions, 
             model_name=plot_title
         )
+        plt.show()
 
 
 def _specific_error_analysis(args, test_data, predictions):
