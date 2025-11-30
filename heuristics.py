@@ -37,10 +37,12 @@ def apply_heuristics(predictions: TaggedData, lang: str = "en") -> TaggedData:
         # English-specific rules
         if lang == "en":
             sentence = _en_multiword_propn(sentence)
+            #sentence = _verb_aux_local(sentence)
         # Dutch-specific rules
         elif lang == "nl":
             sentence = _nl_multiword_propn(sentence)
             sentence = _nl_adj_noun_substantivization(sentence)
+            #sentence = _verb_aux_local(sentence)
         # Greek-specific rules
         elif lang == "el":
             sentence = _el_verb_noun(sentence)
@@ -321,5 +323,39 @@ def _nl_adj_noun_substantivization(sentence: TaggedSentence) -> TaggedSentence:
         ):
             # treat the middle NOUN as an adjective
             new_sentence[i] = (word, "ADJ")
+
+    return new_sentence
+
+def _verb_aux_local(sentence: TaggedSentence, window: int = 3) -> TaggedSentence:
+    """
+    Language-generic heuristic for VERB/AUX ambiguity (used for English & Dutch).
+
+    Rule:
+        If a token is tagged as AUX but there is no VERB within a local +/- `window`
+        around it, we relabel it as VERB.
+
+    Motivation:
+        In many cases where AUX is the only verb-like element in the clause
+        (e.g. 'The answer is correct', short answers like 'Yes, it is'),
+        it functions as the main verb and should be tagged as VERB. When a true
+        lexical verb is present nearby, we keep AUX as AUX.
+    """
+    new_sentence: TaggedSentence = []
+    tags_only = [t for _, t in sentence]
+    n = len(sentence)
+
+    for i, (word, tag) in enumerate(sentence):
+        new_tag = tag
+
+        if tag == "AUX":
+            # check for a VERB within +/- window positions
+            left = max(0, i - window)
+            right = min(n, i + window + 1)
+            has_verb_nearby = any(t == "VERB" for t in tags_only[left:right])
+
+            if not has_verb_nearby:
+                new_tag = "VERB"
+
+        new_sentence.append((word, new_tag))
 
     return new_sentence

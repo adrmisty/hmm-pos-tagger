@@ -134,7 +134,8 @@ preds = hmm.predict(words)
 pred_tags = [t for sent in preds for w, t in sent]
 
 metrics = compute_metrics(gold_tags, pred_tags)
-print(f"Accuracy: {metrics['accuracy']:.2%}")```
+print(f"Accuracy: {metrics['accuracy']:.2%}")
+```
 ---
 
 ## 6. References
