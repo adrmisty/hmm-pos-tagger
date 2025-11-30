@@ -37,10 +37,10 @@ def apply_heuristics(predictions: TaggedData, lang: str = "en") -> TaggedData:
         # English-specific rules
         if lang == "en":
             sentence = _en_multiword_propn(sentence)
-        
-        # future:
-        # if lang == "nl": ...
-        # if lang == "el": ...
+        # Dutch-specific rules
+        elif lang == "nl":
+            sentence = _nl_multiword_propn(sentence)
+        # Greek ('el') will come later
 
         corrected_predictions.append(sentence)
         
@@ -137,6 +137,51 @@ def _en_multiword_propn(sentence: TaggedSentence) -> TaggedSentence:
     while avoiding noun-noun compounds like:
         - 'street market'
         - 'animal rights group'
+    """
+
+    def _is_capitalized(w: str) -> bool:
+        return bool(w) and w[0].isupper() and not w[0].isdigit()
+
+    new_sentence: TaggedSentence = []
+
+    for i, (word, tag) in enumerate(sentence):
+        new_tag = tag
+
+        if tag == 'NOUN' and _is_capitalized(word):
+            prev_is_cap_propn = (
+                i > 0
+                and sentence[i - 1][1] == 'PROPN'
+                and _is_capitalized(sentence[i - 1][0])
+            )
+            next_is_cap_propn = (
+                i < len(sentence) - 1
+                and sentence[i + 1][1] == 'PROPN'
+                and _is_capitalized(sentence[i + 1][0])
+            )
+
+            if prev_is_cap_propn or next_is_cap_propn:
+                new_tag = 'PROPN'
+
+        new_sentence.append((word, new_tag))
+
+    return new_sentence
+
+def _nl_multiword_propn(sentence: TaggedSentence) -> TaggedSentence:
+    """
+    Dutch-specific heuristic:
+    Promote NOUN -> PROPN for capitalized multi-word proper nouns.
+
+    Rule (same logic as English, but gated to lang='nl'):
+        If a token is tagged as NOUN and:
+          - it starts with a capital letter (and not a digit), AND
+          - it is adjacent to a token tagged as PROPN that also starts
+            with a capital letter,
+        then relabel it as PROPN.
+
+    This aims to capture things like:
+        - 'Koninklijke Bibliotheek'
+        - 'San Francisco Bay'
+    while avoiding lowercase noun-noun compounds.
     """
 
     def _is_capitalized(w: str) -> bool:
