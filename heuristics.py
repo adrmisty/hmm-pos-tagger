@@ -122,24 +122,46 @@ def _multiword_entities(sentence: TaggedSentence) -> TaggedSentence:
 def _en_multiword_propn(sentence: TaggedSentence) -> TaggedSentence:
     """
     English-specific heuristic:
-    Promote NOUN to PROPN when adjacent to an existing PROPN.
-    This captures multi-word named entities such as:
-        - 'New York'
-        - 'Michelangelo David'
-        - 'San Francisco Bay'
+    Promote NOUN -> PROPN only for capitalized multi-word proper nouns.
+
+    Rule:
+        If a token is tagged as NOUN and:
+          - it starts with a capital letter (and not a digit), AND
+          - it is adjacent to a token tagged as PROPN that also starts
+            with a capital letter,
+        then relabel it as PROPN.
+
+    This aims to capture things like:
+        - 'New York'          → New/PROPN York/PROPN
+        - 'San Francisco Bay' → San/PROPN Francisco/PROPN Bay/PROPN
+    while avoiding noun-noun compounds like:
+        - 'street market'
+        - 'animal rights group'
     """
-    new_sentence = []
+
+    def _is_capitalized(w: str) -> bool:
+        return bool(w) and w[0].isupper() and not w[0].isdigit()
+
+    new_sentence: TaggedSentence = []
 
     for i, (word, tag) in enumerate(sentence):
         new_tag = tag
-        
-        if tag == 'NOUN':
-            prev_is_propn = (i > 0 and sentence[i - 1][1] == 'PROPN')
-            next_is_propn = (i < len(sentence) - 1 and sentence[i + 1][1] == 'PROPN')
 
-            if prev_is_propn or next_is_propn:
+        if tag == 'NOUN' and _is_capitalized(word):
+            prev_is_cap_propn = (
+                i > 0
+                and sentence[i - 1][1] == 'PROPN'
+                and _is_capitalized(sentence[i - 1][0])
+            )
+            next_is_cap_propn = (
+                i < len(sentence) - 1
+                and sentence[i + 1][1] == 'PROPN'
+                and _is_capitalized(sentence[i + 1][0])
+            )
+
+            if prev_is_cap_propn or next_is_cap_propn:
                 new_tag = 'PROPN'
-        
+
         new_sentence.append((word, new_tag))
-    
+
     return new_sentence
