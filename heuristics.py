@@ -40,7 +40,9 @@ def apply_heuristics(predictions: TaggedData, lang: str = "en") -> TaggedData:
         # Dutch-specific rules
         elif lang == "nl":
             sentence = _nl_multiword_propn(sentence)
-        # Greek ('el') will come later
+        # Greek-specific rules
+        elif lang == "el":
+            sentence = _el_verb_noun(sentence)
 
         corrected_predictions.append(sentence)
         
@@ -206,6 +208,74 @@ def _nl_multiword_propn(sentence: TaggedSentence) -> TaggedSentence:
 
             if prev_is_cap_propn or next_is_cap_propn:
                 new_tag = 'PROPN'
+
+        new_sentence.append((word, new_tag))
+
+    return new_sentence
+
+def _el_verb_noun(sentence: TaggedSentence) -> TaggedSentence:
+    """
+    Greek-specific heuristic for VERB/NOUN ambiguity.
+
+    1) VERB -> NOUN:
+       If a token is tagged as VERB but:
+         - its lowercase form ends with a typical nominal suffix
+           (e.g. -ση, -σεις, -σεων, -μα, -ματα), OR
+         - it is preceded by a genitive-governing determiner/preposition
+           (του, της, των, λόγω, αντί, κατά),
+       then relabel it as NOUN.
+
+    2) NOUN -> VERB:
+       If a token is tagged as NOUN and is preceded by particles that
+       typically select a verb (να, ας, να μην, ας μην), then relabel
+       it as VERB.
+
+    Note: this uses only surface forms, not full morphological features,
+    so it is a coarse correction.
+    """
+
+    # Rough nominalization suffixes (in lowercase, without accent logic)
+    nominal_suffixes = (
+        "ση", "σεις", "σεων",
+        "μα", "ματα",
+    )
+
+    # Determiners / prepositions that often introduce nominal complements
+    genitive_dets_preps = {"του", "της", "των", "λόγω", "αντί", "κατά"}
+
+    # Particles that strongly prefer a verb afterwards
+    verb_particles = {"να", "ας"}
+    negation = "μην"
+
+    new_sentence: TaggedSentence = []
+
+    for i, (word, tag) in enumerate(sentence):
+        w_lower = word.lower()
+        new_tag = tag
+
+        # ---- Rule 1: VERB -> NOUN (nominalizations or genitive context)
+        if tag == "VERB":
+            prev_word = sentence[i - 1][0].lower() if i > 0 else ""
+            # previous two words (for 'να μην', 'ας μην')
+            prev2_word = sentence[i - 2][0].lower() if i > 1 else ""
+
+            has_nominal_suffix = any(w_lower.endswith(suf) for suf in nominal_suffixes)
+            preceded_by_genitive = prev_word in genitive_dets_preps
+
+            if has_nominal_suffix or preceded_by_genitive:
+                new_tag = "NOUN"
+
+        # ---- Rule 2: NOUN -> VERB (particles 'να', 'ας', optionally with 'μην')
+        elif tag == "NOUN":
+            prev_word = sentence[i - 1][0].lower() if i > 0 else ""
+            prev2_word = sentence[i - 2][0].lower() if i > 1 else ""
+
+            # Patterns: 'να V', 'ας V', 'να μην V', 'ας μην V'
+            particle_before = prev_word in verb_particles
+            particle_neg_before = prev2_word in verb_particles and prev_word == negation
+
+            if particle_before or particle_neg_before:
+                new_tag = "VERB"
 
         new_sentence.append((word, new_tag))
 
