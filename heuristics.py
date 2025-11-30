@@ -31,20 +31,17 @@ def apply_heuristics(predictions: TaggedData, lang: str = "en") -> TaggedData:
     corrected_predictions = []
     
     for sentence in predictions:
-        # universal rule: digits → NUM
+        # universal
         sentence = _numerals(sentence)
         
-        # NOTE: language-specific rules will be added in later steps.
-        # For now, we ignore `lang` and only apply the numeric heuristic.
-        # Example of future structure:
-        #
-        # if lang == "en":
-        #     sentence = _en_noun_propn(sentence)
-        # elif lang == "nl":
-        #     sentence = _nl_noun_propn(sentence)
-        # elif lang == "el":
-        #     sentence = _el_noun_propn(sentence)
+        # English-specific rules
+        if lang == "en":
+            sentence = _en_multiword_propn(sentence)
         
+        # future:
+        # if lang == "nl": ...
+        # if lang == "el": ...
+
         corrected_predictions.append(sentence)
         
     return corrected_predictions
@@ -120,4 +117,29 @@ def _multiword_entities(sentence: TaggedSentence) -> TaggedSentence:
         
         new_sentence.append((word, new_tag))
             
+    return new_sentence
+
+def _en_multiword_propn(sentence: TaggedSentence) -> TaggedSentence:
+    """
+    English-specific heuristic:
+    Promote NOUN to PROPN when adjacent to an existing PROPN.
+    This captures multi-word named entities such as:
+        - 'New York'
+        - 'Michelangelo David'
+        - 'San Francisco Bay'
+    """
+    new_sentence = []
+
+    for i, (word, tag) in enumerate(sentence):
+        new_tag = tag
+        
+        if tag == 'NOUN':
+            prev_is_propn = (i > 0 and sentence[i - 1][1] == 'PROPN')
+            next_is_propn = (i < len(sentence) - 1 and sentence[i + 1][1] == 'PROPN')
+
+            if prev_is_propn or next_is_propn:
+                new_tag = 'PROPN'
+        
+        new_sentence.append((word, new_tag))
+    
     return new_sentence
