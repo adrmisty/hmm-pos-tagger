@@ -15,13 +15,15 @@ TaggedData = List[TaggedSentence]
 # e.g. run the capitalization PNOUN rule before the multi-word entity one
 # bc they kinda deal with the same but one makes the second not-so-necessary
  
-def apply_heuristics(predictions: TaggedData) -> TaggedData:
+def apply_heuristics(predictions: TaggedData, lang: str = "en") -> TaggedData:
     """
     Applies a sequence of heuristic rules to correct HMM predictions.
-    [Basis: mistags in PNOUN vs NOUN & other problematic POS tags].
-    
+
     Args:
         predictions (TaggedData): nested list of (word, predicted_tag) tuples.
+        lang (str): language code used to select language-specific rules
+                    (e.g. "en", "nl", "el"). Currently only affects which
+                    rules are applied; the default is English ("en").
 
     Returns:
         TaggedData: the modified list of predictions.
@@ -29,18 +31,20 @@ def apply_heuristics(predictions: TaggedData) -> TaggedData:
     corrected_predictions = []
     
     for sentence in predictions:
-        # mistag: <NUM> --> correcting numbers
-        # > forces words with digits (- no digits) to NUM
+        # universal rule: digits → NUM
         sentence = _numerals(sentence)
         
-        # mistag: <NOUN> vs <PNOUN> --> capitalization mishaps
-        # > more likely to be a proper noun if capitalized and not at sent start
-        # sentence = _proper_nouns(sentence)
+        # NOTE: language-specific rules will be added in later steps.
+        # For now, we ignore `lang` and only apply the numeric heuristic.
+        # Example of future structure:
+        #
+        # if lang == "en":
+        #     sentence = _en_noun_propn(sentence)
+        # elif lang == "nl":
+        #     sentence = _nl_noun_propn(sentence)
+        # elif lang == "el":
+        #     sentence = _el_noun_propn(sentence)
         
-        # mistag: multi-word noun entities --> context based
-        # > forces adjacent nouns to pnouns if next to one
-        # sentence = _multiword_entities(sentence)
-
         corrected_predictions.append(sentence)
         
     return corrected_predictions

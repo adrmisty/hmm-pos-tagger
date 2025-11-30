@@ -25,7 +25,7 @@ def main(args):
     # apply heuristics 
     # to file {original_name}_postprocessed.txt
     print("\n ** Applying post-processing heuristics... **")
-    corrected_predictions = apply_heuristics(predictions)
+    corrected_predictions = apply_heuristics(predictions, lang=args.lang)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     filename = args.input_predictions.stem + "_postprocessed" + args.input_predictions.suffix
@@ -48,6 +48,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-dir", type=Path, default=Path("./results/post_processed/"),
         help="Directory where corrected files should be saved."
+    )
+
+    parser.add_argument(
+        "--lang", type=str, default="en",
+        help="Language code for language-specific heuristics (e.g. 'en', 'nl', 'el')."
     )
 
     args = parser.parse_args()    
