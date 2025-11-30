@@ -40,6 +40,7 @@ def apply_heuristics(predictions: TaggedData, lang: str = "en") -> TaggedData:
         # Dutch-specific rules
         elif lang == "nl":
             sentence = _nl_multiword_propn(sentence)
+            sentence = _nl_adj_noun_substantivization(sentence)
         # Greek-specific rules
         elif lang == "el":
             sentence = _el_verb_noun(sentence)
@@ -278,5 +279,47 @@ def _el_verb_noun(sentence: TaggedSentence) -> TaggedSentence:
                 new_tag = "VERB"
 
         new_sentence.append((word, new_tag))
+
+    return new_sentence
+
+def _nl_adj_noun_substantivization(sentence: TaggedSentence) -> TaggedSentence:
+    """
+    Dutch-specific heuristic for ADJ/NOUN confusion in substantivized contexts.
+
+    Target pattern (predicted tags):
+        DET NOUN NOUN
+
+    Motivation:
+        In many Dutch NPs, an adjective precedes the head noun, e.g.
+            'de arme mensen'  (DET ADJ NOUN)
+        but the model often predicts:
+            'de arme mensen' → DET NOUN NOUN
+        where the middle NOUN should really be ADJ.
+
+    Rule:
+        If we see DET NOUN NOUN and both nouns are lower-case (to avoid proper
+        names), we relabel the middle NOUN as ADJ.
+    """
+
+    new_sentence: TaggedSentence = sentence.copy()
+    n = len(sentence)
+
+    def _is_lower_nonempty(w: str) -> bool:
+        return bool(w) and w[0].islower()
+
+    for i in range(1, n - 1):
+        prev_word, prev_tag = sentence[i - 1]
+        word, tag = sentence[i]
+        next_word, next_tag = sentence[i + 1]
+
+        if (
+            prev_tag == "DET"
+            and tag == "NOUN"
+            and next_tag == "NOUN"
+            and _is_lower_nonempty(word)
+            and _is_lower_nonempty(next_word)
+        ):
+            # treat the middle NOUN as an adjective
+            new_sentence[i] = (word, "ADJ")
 
     return new_sentence
